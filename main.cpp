@@ -12,21 +12,20 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
         std::swap(ax, bx);
         std::swap(ay, by);
     }
-    bool transpose = false;
-    if (std::abs(bx - ax) < std::abs(by - ay)) {
+    bool transpose = std::abs(bx - ax) < std::abs(by - ay);
+    if (transpose) {
         std::swap(ax, ay);
         std::swap(bx, by);
-        transpose = true;
     }
+    float slope = (by - ay)/static_cast<float>(bx - ax);
+    float y = ay;
     for (int x = ax; x <= bx; x++) {
-        float t = (x-ax)/static_cast<float>(bx - ax);
-        int y = std::round(ay * (1 - t) + by * t);
-
         if (transpose) {
             framebuffer.set(y, x, color);
         } else {
             framebuffer.set(x, y, color);
         }
+        y += slope;
     }
 }
 
