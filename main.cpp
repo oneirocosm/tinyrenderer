@@ -8,20 +8,25 @@ constexpr TGAColor blue    = {255, 128,  64, 255};
 constexpr TGAColor yellow  = {  0, 200, 255, 255};
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color) {
-    float minx;
-    float maxx;
-    if (ax < bx) {
-        minx = ax;
-        maxx = bx;
-    } else {
-        minx = bx;
-        maxx = ax;
+    if (ax > bx) {
+        std::swap(ax, bx);
+        std::swap(ay, by);
     }
-    for (int x = minx; x <= maxx; x++) {
+    bool transpose = false;
+    if (std::abs(bx - ax) < std::abs(by - ay)) {
+        std::swap(ax, ay);
+        std::swap(bx, by);
+        transpose = true;
+    }
+    for (int x = ax; x <= bx; x++) {
         float t = (x-ax)/static_cast<float>(bx - ax);
         int y = std::round(ay * (1 - t) + by * t);
 
-        framebuffer.set(x, y, color);
+        if (transpose) {
+            framebuffer.set(y, x, color);
+        } else {
+            framebuffer.set(x, y, color);
+        }
     }
 }
 
