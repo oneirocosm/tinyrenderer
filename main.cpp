@@ -8,7 +8,16 @@ constexpr TGAColor blue    = {255, 128,  64, 255};
 constexpr TGAColor yellow  = {  0, 200, 255, 255};
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color) {
-    for (int x = ax; x <= bx; x++) {
+    float minx;
+    float maxx;
+    if (ax < bx) {
+        minx = ax;
+        maxx = bx;
+    } else {
+        minx = bx;
+        maxx = ax;
+    }
+    for (int x = minx; x <= maxx; x++) {
         float t = (x-ax)/static_cast<float>(bx - ax);
         int y = std::round(ay * (1 - t) + by * t);
 
