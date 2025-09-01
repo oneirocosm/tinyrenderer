@@ -12,16 +12,16 @@ constexpr TGAColor yellow = {0, 200, 255, 255};
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
 {
-    if (ax > bx)
-    {
-        std::swap(ax, bx);
-        std::swap(ay, by);
-    }
     bool transpose = std::abs(bx - ax) < std::abs(by - ay);
     if (transpose)
     {
         std::swap(ax, ay);
         std::swap(bx, by);
+    }
+    if (ax > bx)
+    {
+        std::swap(ax, bx);
+        std::swap(ay, by);
     }
     int y = ay;
     int ierror = 0;
