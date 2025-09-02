@@ -6,9 +6,9 @@
 #include <optional>
 #include <regex>
 
-Model::Model(std::vector<vec3> vertices, std::vector<int> face_idxs) : vertices(vertices), face_idxs(face_idxs) {};
+Model::Model(std::vector<vec3> const vertices, std::vector<int> const face_idxs) : vertices(vertices), face_idxs(face_idxs) {};
 
-std::vector<std::string> Model::string_split(std::string input, std::string sep)
+std::vector<std::string> Model::string_split(std::string const input, std::string const sep)
 {
     std::regex split_regex(sep);
     std::vector<std::string> segments{
@@ -18,7 +18,7 @@ std::vector<std::string> Model::string_split(std::string input, std::string sep)
     return segments;
 }
 
-std::optional<double> Model::try_stod(std::string input)
+std::optional<double> Model::try_stod(std::string const input)
 {
     char *err;
     double out = strtod(input.c_str(), &err);
@@ -29,7 +29,7 @@ std::optional<double> Model::try_stod(std::string input)
     return out;
 }
 
-std::optional<int> Model::try_first_idx(std::string input)
+std::optional<int> Model::try_first_idx(std::string const input)
 {
     std::vector<std::string> idx_str = string_split(input, "[^/]+");
     if (idx_str.size() != 3)
@@ -47,7 +47,7 @@ std::optional<int> Model::try_first_idx(std::string input)
 
 // public
 
-std::optional<Model> Model::create(const std::string filename)
+std::optional<Model> Model::create(std::string const filename)
 {
     std::ifstream input_stream(filename);
     if (!input_stream)
@@ -102,17 +102,35 @@ std::optional<Model> Model::create(const std::string filename)
             face_idxs.push_back(maybe_idx1.value() - 1);
             face_idxs.push_back(maybe_idx2.value() - 1);
             face_idxs.push_back(maybe_idx3.value() - 1);
-        } // else continue
+        } // else ignore the line
     }
     return Model(vertices, face_idxs);
 }
 
-std::vector<vec3> Model::getVertices()
+std::optional<vec3> Model::vert(size_t const idx) const
 {
-    return vertices;
-}
+    if (idx >= vertices.size())
+    {
+        return std::nullopt;
+    }
+    return vertices[idx];
+};
 
-std::vector<int> Model::getFaceIdxs()
+std::optional<vec3> Model::vert(size_t const faceIdx, size_t const idx) const
 {
-    return face_idxs;
-}
+    if (faceIdx >= nfaces() || idx > 2)
+    {
+        return std::nullopt;
+    }
+    return vertices[face_idxs[3 * faceIdx + idx]];
+};
+
+size_t Model::nverts() const
+{
+    return vertices.size();
+};
+
+size_t Model::nfaces() const
+{
+    return face_idxs.size() / 3;
+};

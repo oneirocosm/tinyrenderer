@@ -41,9 +41,9 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
     }
 }
 
-vec3 scale2D(vec3 input, double xScale, double yScale)
+vec3 scale2D(vec3 input, double width, double height)
 {
-    return vec3{(input.x + 1.0) * xScale / 2.0, (input.y + 1.0) * yScale / 2.0, 0};
+    return vec3{(input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0};
 }
 
 int main(int argc, char **argv)
@@ -66,21 +66,22 @@ int main(int argc, char **argv)
     }
     Model model = maybeModel.value();
 
-    std::vector<vec3> vertices = model.getVertices();
-    std::vector<int> faceIdxs = model.getFaceIdxs();
-    for (size_t i = 0; i + 2 < faceIdxs.size(); i += 3)
+    for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
     {
-        vec3 a = scale2D(vertices[faceIdxs[i]], width, height);
-        vec3 b = scale2D(vertices[faceIdxs[i + 1]], width, height);
-        vec3 c = scale2D(vertices[faceIdxs[i + 2]], width, height);
+        // no need to check maybe in this scenario
+        vec3 a = scale2D(model.vert(faceIdx, 0).value(), width, height);
+        vec3 b = scale2D(model.vert(faceIdx, 1).value(), width, height);
+        vec3 c = scale2D(model.vert(faceIdx, 2).value(), width, height);
+
         line(a.x, a.y, b.x, b.y, framebuffer, red);
         line(b.x, b.y, c.x, c.y, framebuffer, red);
         line(c.x, c.y, a.x, a.y, framebuffer, red);
     }
 
-    for (vec3 vertex : vertices)
+    for (size_t vertIdx = 0; vertIdx < model.nverts(); vertIdx++)
     {
-        vec3 scaled = scale2D(vertex, width, height);
+        // no need to check maybe in this scenario
+        vec3 scaled = scale2D(model.vert(vertIdx).value(), width, height);
         framebuffer.set(scaled.x, scaled.y, white);
     }
 
