@@ -47,51 +47,49 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
 
 void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
 {
-    line(ax, ay, bx, by, framebuffer, color);
-    line(bx, by, cx, cy, framebuffer, color);
-    line(cx, cy, ax, ay, framebuffer, color);
-
-    // int minX = std::min({ax, bx, cx});
-    // int maxX = std::max({ax, bx, cx});
-    int minY = std::min({ay, by, cy});
-    int maxY = std::max({ay, by, cy});
-
-    for (int y = minY + 1; y < maxY; y++)
+    if (ay > by)
     {
-        double abTVal = (y - ay) / static_cast<float>(by - ay);
-        int abXVal = std::round(ax * (1 - abTVal) + bx * abTVal);
+        std::swap(ax, bx);
+        std::swap(ay, by);
+    }
+    if (ay > cy)
+    {
+        std::swap(ax, cx);
+        std::swap(ay, cy);
+    }
+    if (by > cy)
+    {
+        std::swap(bx, cx);
+        std::swap(by, cy);
+    }
+    int totalHeight = cy - ay;
 
-        double bcTVal = (y - by) / static_cast<float>(cy - by);
-        int bcXVal = std::round(bx * (1 - bcTVal) + cx * bcTVal);
-
-        double caTVal = (y - cy) / static_cast<float>(ay - cy);
-        int caXVal = std::round(cx * (1 - caTVal) + ax * caTVal);
-
-        int leftX;
-        int rightX;
-
-        if (caTVal <= 0 || caTVal >= 1)
+    // check for degenerate case of bottom half
+    if (ay != by)
+    {
+        int segmentHeight = by - ay;
+        for (int y = ay; y <= by; y++)
         {
-            leftX = std::min(abXVal, bcXVal);
-            rightX = std::max(abXVal, bcXVal);
-            std::cout << "ca excluded" << std::endl;
+            int x1 = ax + ((cx - ax) * (y - ay)) / totalHeight;
+            int x2 = ax + ((bx - ax) * (y - ay)) / segmentHeight;
+            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++)
+            {
+                framebuffer.set(x, y, color);
+            }
         }
-        else if (bcTVal <= 0 || bcTVal >= 1)
+    }
+    // check for degenerate case of upper half
+    if (by != cy)
+    {
+        int segmentHeight = cy - by;
+        for (int y = by; y <= cy; y++)
         {
-            leftX = std::min(caXVal, abXVal);
-            rightX = std::max(caXVal, abXVal);
-            std::cout << "bc excluded" << std::endl;
-        }
-        else
-        {
-            leftX = std::min(bcXVal, caXVal);
-            rightX = std::max(bcXVal, caXVal);
-            std::cout << "ab excluded" << std::endl;
-        }
-
-        for (int x = leftX; x <= rightX; x++)
-        {
-            framebuffer.set(x, y, color);
+            int x1 = ax + ((cx - ax) * (y - ay)) / totalHeight;
+            int x2 = bx + ((cx - bx) * (y - by)) / segmentHeight;
+            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++)
+            {
+                framebuffer.set(x, y, color);
+            }
         }
     }
 }
