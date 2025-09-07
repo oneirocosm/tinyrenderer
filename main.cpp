@@ -4,6 +4,9 @@
 #include "model.h"
 #include "geometry.h"
 
+constexpr int width = 128;
+constexpr int height = 128;
+
 constexpr TGAColor white = {255, 255, 255, 255}; // attention, BGRA order
 constexpr TGAColor green = {0, 255, 0, 255};
 constexpr TGAColor red = {0, 0, 255, 255};
@@ -41,6 +44,13 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
     }
 }
 
+void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
+{
+    line(ax, ay, bx, by, framebuffer, color);
+    line(bx, by, cx, cy, framebuffer, color);
+    line(cx, cy, ax, ay, framebuffer, color);
+}
+
 vec3 scale2D(vec3 input, double width, double height)
 {
     return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0.0);
@@ -48,42 +58,11 @@ vec3 scale2D(vec3 input, double width, double height)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
-    {
-        std::cerr << "Incorrect number or arguments. Must be called with 1 argument!" << std::endl;
-        return 1;
-    }
-
-    constexpr int width = 800;
-    constexpr int height = 800;
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    std::optional<Model> maybeModel = Model::create(argv[1]);
-    if (!maybeModel.has_value())
-    {
-        std::cerr << "Error parsing file" << argv[1] << std::endl;
-        return 1;
-    }
-    Model model = maybeModel.value();
-
-    for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
-    {
-        // no need to check maybe in this scenario
-        vec3 a = scale2D(model.vert(faceIdx, 0).value(), width, height);
-        vec3 b = scale2D(model.vert(faceIdx, 1).value(), width, height);
-        vec3 c = scale2D(model.vert(faceIdx, 2).value(), width, height);
-
-        line(a.x, a.y, b.x, b.y, framebuffer, red);
-        line(b.x, b.y, c.x, c.y, framebuffer, red);
-        line(c.x, c.y, a.x, a.y, framebuffer, red);
-    }
-
-    for (size_t vertIdx = 0; vertIdx < model.nverts(); vertIdx++)
-    {
-        // no need to check maybe in this scenario
-        vec3 scaled = scale2D(model.vert(vertIdx).value(), width, height);
-        framebuffer.set(scaled.x, scaled.y, white);
-    }
+    triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
+    triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
+    triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
