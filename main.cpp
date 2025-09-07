@@ -47,49 +47,17 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
 
 void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
 {
-    if (ay > by)
-    {
-        std::swap(ax, bx);
-        std::swap(ay, by);
-    }
-    if (ay > cy)
-    {
-        std::swap(ax, cx);
-        std::swap(ay, cy);
-    }
-    if (by > cy)
-    {
-        std::swap(bx, cx);
-        std::swap(by, cy);
-    }
-    int totalHeight = cy - ay;
+    int minX = std::min({ax, bx, cx});
+    int maxX = std::max({ax, bx, cx});
+    int minY = std::min({ay, by, cy});
+    int maxY = std::max({ay, by, cy});
 
-    // check for degenerate case of bottom half
-    if (ay != by)
+#pragma omp parallel for
+    for (int y = minY; y <= maxY; y++)
     {
-        int segmentHeight = by - ay;
-        for (int y = ay; y <= by; y++)
+        for (int x = minX; x <= maxX; x++)
         {
-            int x1 = ax + ((cx - ax) * (y - ay)) / totalHeight;
-            int x2 = ax + ((bx - ax) * (y - ay)) / segmentHeight;
-            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++)
-            {
-                framebuffer.set(x, y, color);
-            }
-        }
-    }
-    // check for degenerate case of upper half
-    if (by != cy)
-    {
-        int segmentHeight = cy - by;
-        for (int y = by; y <= cy; y++)
-        {
-            int x1 = ax + ((cx - ax) * (y - ay)) / totalHeight;
-            int x2 = bx + ((cx - bx) * (y - by)) / segmentHeight;
-            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++)
-            {
-                framebuffer.set(x, y, color);
-            }
+            framebuffer.set(x, y, color);
         }
     }
 }
