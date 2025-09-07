@@ -3,6 +3,7 @@
 #include "tgaimage.h"
 #include "model.h"
 #include "geometry.h"
+#include <algorithm>
 
 constexpr int width = 128;
 constexpr int height = 128;
@@ -49,6 +50,50 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
     line(ax, ay, bx, by, framebuffer, color);
     line(bx, by, cx, cy, framebuffer, color);
     line(cx, cy, ax, ay, framebuffer, color);
+
+    // int minX = std::min({ax, bx, cx});
+    // int maxX = std::max({ax, bx, cx});
+    int minY = std::min({ay, by, cy});
+    int maxY = std::max({ay, by, cy});
+
+    for (int y = minY + 1; y < maxY; y++)
+    {
+        double abTVal = (y - ay) / static_cast<float>(by - ay);
+        int abXVal = std::round(ax * (1 - abTVal) + bx * abTVal);
+
+        double bcTVal = (y - by) / static_cast<float>(cy - by);
+        int bcXVal = std::round(bx * (1 - bcTVal) + cx * bcTVal);
+
+        double caTVal = (y - cy) / static_cast<float>(ay - cy);
+        int caXVal = std::round(cx * (1 - caTVal) + ax * caTVal);
+
+        int leftX;
+        int rightX;
+
+        if (caTVal <= 0 || caTVal >= 1)
+        {
+            leftX = std::min(abXVal, bcXVal);
+            rightX = std::max(abXVal, bcXVal);
+            std::cout << "ca excluded" << std::endl;
+        }
+        else if (bcTVal <= 0 || bcTVal >= 1)
+        {
+            leftX = std::min(caXVal, abXVal);
+            rightX = std::max(caXVal, abXVal);
+            std::cout << "bc excluded" << std::endl;
+        }
+        else
+        {
+            leftX = std::min(bcXVal, caXVal);
+            rightX = std::max(bcXVal, caXVal);
+            std::cout << "ab excluded" << std::endl;
+        }
+
+        for (int x = leftX; x <= rightX; x++)
+        {
+            framebuffer.set(x, y, color);
+        }
+    }
 }
 
 vec3 scale2D(vec3 input, double width, double height)
