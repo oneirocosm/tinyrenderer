@@ -5,14 +5,6 @@
 #include <iostream>
 #include <numeric>
 
-namespace tag
-{
-    using With_values = struct With_values_struct *;
-    constexpr auto with_values = With_values();
-    using With_capacity = struct With_capacity_struct *;
-    constexpr auto with_capacity = With_capacity();
-} // namespace tag
-
 template <typename T, typename CRTP>
 struct VecBase
 {
@@ -32,39 +24,39 @@ struct VecBase
 
     void zero()
     {
-        std::fill(std::begin(crtp().data), std::end(crtp().data), T());
+        std::fill(std::begin(crtp().x), std::begin(crtp().x) + size(), T());
     }
 
     T *begin()
     {
-        return &crtp().data;
+        return &crtp().x;
     }
 
     T *end()
     {
-        return &crtp().data + size();
+        return &crtp().x + size();
     }
 
     T const *begin() const
     {
-        return &crtp().data;
+        return &crtp().x;
     }
 
     T const *end() const
     {
-        return &crtp().data + size();
+        return &crtp().x + size();
     }
 
     T &operator[](size_t i)
     {
         assert(i < N);
-        return crtp().data[i];
+        return *(&crtp().x + i);
     }
 
     T const &operator[](size_t i) const
     {
         assert(i < N);
-        return crtp().data[i];
+        return *(&crtp().x + i);
     }
 };
 
@@ -73,7 +65,6 @@ struct Vec : VecBase<T, Vec<T, N>>
 {
     union
     {
-        T data[N];
         struct
         {
             T x;
@@ -94,11 +85,8 @@ struct Vec : VecBase<T, Vec<T, N>>
 template <typename T>
 struct Vec<T, 2> : VecBase<T, Vec<T, 2>>
 {
-    Vec(T x, T y) : x(x), y(y) {};
-
     union
     {
-        T data[2];
         struct
         {
             T x;
@@ -110,11 +98,8 @@ struct Vec<T, 2> : VecBase<T, Vec<T, 2>>
 template <typename T>
 struct Vec<T, 3> : VecBase<T, Vec<T, 3>>
 {
-    Vec(T x, T y, T z) : x(x), y(y), z(z) {};
-
     union
     {
-        T data[3]{};
         struct
         {
             T x;
@@ -133,11 +118,8 @@ struct Vec<T, 3> : VecBase<T, Vec<T, 3>>
 template <typename T>
 struct Vec<T, 4> : VecBase<T, Vec<T, 4>>
 {
-    Vec(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {};
-
     union
     {
-        T data[4];
         struct
         {
             T x;

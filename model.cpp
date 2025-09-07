@@ -79,7 +79,7 @@ std::optional<Model> Model::create(std::string const filename)
                 return std::nullopt;
             }
 
-            vec3 vertex = {maybe_x.value(), maybe_y.value(), maybe_z.value()};
+            vec3 vertex = vec3({maybe_x.value(), maybe_y.value(), maybe_z.value()});
             vertices.push_back(vertex);
         }
         else if (words[0] == "f")

@@ -43,7 +43,7 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
 
 vec3 scale2D(vec3 input, double width, double height)
 {
-    return vec3{(input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0};
+    return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0.0);
 }
 
 int main(int argc, char **argv)
