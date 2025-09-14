@@ -5,8 +5,8 @@
 #include "geometry.h"
 #include <algorithm>
 
-constexpr int width = 800;
-constexpr int height = 800;
+constexpr int width = 64;
+constexpr int height = 64;
 
 constexpr TGAColor white = {255, 255, 255, 255}; // attention, BGRA order
 constexpr TGAColor green = {0, 255, 0, 255};
@@ -64,7 +64,7 @@ bool isInside(vec2 p, vec2 a, vec2 b, vec2 c)
     return (u >= 0 && v >= 0 && w >= 0);
 }
 
-void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
+void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz, TGAImage &framebuffer)
 {
     int minX = std::min({ax, bx, cx});
     int maxX = std::max({ax, bx, cx});
@@ -81,9 +81,17 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
             vec2 b(bx, by);
             vec2 c(cx, cy);
             int triAreaDouble = triangleArea(a, b, c);
-            if (isInside(p, a, b, c) && triAreaDouble > 0)
+            int bcpAreaDouble = triangleArea(p, b, c);
+            int capAreaDouble = triangleArea(p, c, a);
+            int abpAreaDouble = triangleArea(p, a, b);
+
+            double u = bcpAreaDouble / static_cast<double>(triAreaDouble);
+            double v = capAreaDouble / static_cast<double>(triAreaDouble);
+            double w = abpAreaDouble / static_cast<double>(triAreaDouble);
+            unsigned char color = static_cast<unsigned char>(u * az + v * bz + w * cz);
+            if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0)
             {
-                framebuffer.set(x, y, color);
+                framebuffer.set(x, y, {color, color, color});
             }
         }
     }
@@ -98,29 +106,11 @@ int main(int argc, char **argv)
 {
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    std::optional<Model> maybeModel = Model::create(argv[1]);
-    if (!maybeModel.has_value())
-    {
-        std::cerr << "Error parsing file" << argv[1] << std::endl;
-        return 1;
-    }
-    Model model = maybeModel.value();
+    int ax = 17, ay = 4, az = 13;
+    int bx = 55, by = 39, bz = 128;
+    int cx = 23, cy = 59, cz = 255;
 
-    for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
-    {
-        // no need to check maybe in this scenario
-        vec3 a = scale2D(model.vert(faceIdx, 0).value(), width, height);
-        vec3 b = scale2D(model.vert(faceIdx, 1).value(), width, height);
-        vec3 c = scale2D(model.vert(faceIdx, 2).value(), width, height);
-
-        TGAColor color;
-        for (size_t i = 0; i < 3; i++)
-        {
-            color[i] = std::rand() % 255;
-        }
-
-        triangle(a.x, a.y, b.x, b.y, c.x, c.y, framebuffer, color);
-    }
+    triangle(ax, ay, az, bx, by, bz, cx, cy, cz, framebuffer);
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
