@@ -45,12 +45,17 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
     }
 }
 
+double triangleArea(vec2 a, vec2 b, vec2 c)
+{
+    return 0.5 * ((b.y - a.y) * (b.x + a.x) + (c.y - b.y) * (c.x + b.x) + (a.y - c.y) * (a.x + c.x));
+}
+
 bool isInside(vec2 p, vec2 a, vec2 b, vec2 c)
 {
-    int triAreaDouble = (b - a).wedgeComp(c - b);
-    int abpAreaDouble = (a - p).wedgeComp(b - a);
-    int bcpAreaDouble = (b - p).wedgeComp(c - b);
-    int capAreaDouble = (c - p).wedgeComp(a - c);
+    int triAreaDouble = triangleArea(a, b, c);
+    int bcpAreaDouble = triangleArea(p, b, c);
+    int capAreaDouble = triangleArea(p, c, a);
+    int abpAreaDouble = triangleArea(p, a, b);
 
     double u = bcpAreaDouble / static_cast<double>(triAreaDouble);
     double v = capAreaDouble / static_cast<double>(triAreaDouble);
@@ -71,11 +76,12 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
     {
         for (int x = minX; x <= maxX; x++)
         {
+            vec2 p(x, y);
             vec2 a(ax, ay);
             vec2 b(bx, by);
             vec2 c(cx, cy);
-            int triAreaDouble = (b - a).wedgeComp(c - b);
-            if (isInside(vec2(x, y), vec2(ax, ay), vec2(bx, by), vec2(cx, cy)) && triAreaDouble > 0)
+            int triAreaDouble = triangleArea(a, b, c);
+            if (isInside(p, a, b, c) && triAreaDouble > 0)
             {
                 framebuffer.set(x, y, color);
             }
