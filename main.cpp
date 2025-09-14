@@ -14,6 +14,7 @@ constexpr TGAColor red = {0, 0, 255, 255};
 constexpr TGAColor blueOld = {255, 128, 64, 255};
 constexpr TGAColor blue = {255, 0, 0, 255};
 constexpr TGAColor yellow = {0, 200, 255, 255};
+constexpr TGAColor black = {0, 0, 0, 255};
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
 {
@@ -99,6 +100,10 @@ void triangle(int ax, int ay, TGAColor aColor, int bx, int by, TGAColor bColor, 
             if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0)
             {
                 framebuffer.set(x, y, color);
+            }
+            if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0 && (u > 0.1 && v > 0.1 && w > 0.1))
+            {
+                framebuffer.set(x, y, black);
             }
         }
     }
