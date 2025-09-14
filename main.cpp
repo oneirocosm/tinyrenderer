@@ -71,7 +71,11 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
     {
         for (int x = minX; x <= maxX; x++)
         {
-            if (isInside(vec2(x, y), vec2(ax, ay), vec2(bx, by), vec2(cx, cy)))
+            vec2 a(ax, ay);
+            vec2 b(bx, by);
+            vec2 c(cx, cy);
+            int triAreaDouble = (b - a).wedgeComp(c - b);
+            if (isInside(vec2(x, y), vec2(ax, ay), vec2(bx, by), vec2(cx, cy)) && triAreaDouble > 0)
             {
                 framebuffer.set(x, y, color);
             }
