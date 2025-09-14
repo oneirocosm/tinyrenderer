@@ -11,7 +11,8 @@ constexpr int height = 64;
 constexpr TGAColor white = {255, 255, 255, 255}; // attention, BGRA order
 constexpr TGAColor green = {0, 255, 0, 255};
 constexpr TGAColor red = {0, 0, 255, 255};
-constexpr TGAColor blue = {255, 128, 64, 255};
+constexpr TGAColor blueOld = {255, 128, 64, 255};
+constexpr TGAColor blue = {255, 0, 0, 255};
 constexpr TGAColor yellow = {0, 200, 255, 255};
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
@@ -64,7 +65,7 @@ bool isInside(vec2 p, vec2 a, vec2 b, vec2 c)
     return (u >= 0 && v >= 0 && w >= 0);
 }
 
-void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz, TGAImage &framebuffer)
+void triangle(int ax, int ay, TGAColor aColor, int bx, int by, TGAColor bColor, int cx, int cy, TGAColor cColor, TGAImage &framebuffer)
 {
     int minX = std::min({ax, bx, cx});
     int maxX = std::max({ax, bx, cx});
@@ -88,10 +89,16 @@ void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, in
             double u = bcpAreaDouble / static_cast<double>(triAreaDouble);
             double v = capAreaDouble / static_cast<double>(triAreaDouble);
             double w = abpAreaDouble / static_cast<double>(triAreaDouble);
-            unsigned char color = static_cast<unsigned char>(u * az + v * bz + w * cz);
+
+            TGAColor color;
+            for (size_t i = 0; i < 3; i++)
+            {
+                color[i] = static_cast<unsigned char>(u * aColor[i] + v * bColor[i] + w * cColor[i]);
+            }
+
             if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0)
             {
-                framebuffer.set(x, y, {color, color, color});
+                framebuffer.set(x, y, color);
             }
         }
     }
@@ -106,11 +113,11 @@ int main(int argc, char **argv)
 {
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    int ax = 17, ay = 4, az = 13;
-    int bx = 55, by = 39, bz = 128;
-    int cx = 23, cy = 59, cz = 255;
+    int ax = 17, ay = 4;
+    int bx = 55, by = 39;
+    int cx = 23, cy = 59;
 
-    triangle(ax, ay, az, bx, by, bz, cx, cy, cz, framebuffer);
+    triangle(ax, ay, blue, bx, by, green, cx, cy, red, framebuffer);
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;

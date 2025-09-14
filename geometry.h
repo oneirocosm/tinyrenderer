@@ -191,6 +191,18 @@ auto dot(Vec<T, N> const &a, Vec<U, N> const &b) -> decltype(a[0] * b[0])
     return std::accumulate(std::begin(product), std::end(product), decltype(product.x)(0));
 }
 
+template <typename T, typename U, size_t N>
+auto operator*(U const scalar, Vec<T, N> const &v) -> Vec<decltype(scalar * v[0]), N>
+{
+    Vec<decltype(scalar * v[0]), N> out;
+
+    for (size_t i = 0; i < N; i++)
+    {
+        out[i] = scalar * v[i];
+    }
+    return out;
+}
+
 typedef Vec<double, 2> vec2;
 typedef Vec<double, 3> vec3;
 typedef Vec<double, 4> vec4;
