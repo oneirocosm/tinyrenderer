@@ -45,6 +45,20 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
     }
 }
 
+bool isInside(vec2 p, vec2 a, vec2 b, vec2 c)
+{
+    int triAreaDouble = (b - a).wedgeComp(c - b);
+    int abpAreaDouble = (a - p).wedgeComp(b - a);
+    int bcpAreaDouble = (b - p).wedgeComp(c - b);
+    int capAreaDouble = (c - p).wedgeComp(a - c);
+
+    double u = bcpAreaDouble / static_cast<double>(triAreaDouble);
+    double v = capAreaDouble / static_cast<double>(triAreaDouble);
+    double w = abpAreaDouble / static_cast<double>(triAreaDouble);
+
+    return (u >= 0 && v >= 0 && w >= 0);
+}
+
 void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
 {
     int minX = std::min({ax, bx, cx});
@@ -57,7 +71,10 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
     {
         for (int x = minX; x <= maxX; x++)
         {
-            framebuffer.set(x, y, color);
+            if (isInside(vec2(x, y), vec2(ax, ay), vec2(bx, by), vec2(cx, cy)))
+            {
+                framebuffer.set(x, y, color);
+            }
         }
     }
 }

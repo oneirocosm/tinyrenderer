@@ -5,14 +5,6 @@
 #include <iostream>
 #include <numeric>
 
-namespace tag
-{
-    using With_values = struct With_values_struct *;
-    constexpr auto with_values = With_values();
-    using With_capacity = struct With_capacity_struct *;
-    constexpr auto with_capacity = With_capacity();
-} // namespace tag
-
 template <typename T, typename CRTP>
 struct VecBase
 {
@@ -57,14 +49,35 @@ struct VecBase
 
     T &operator[](size_t i)
     {
-        assert(i < N);
+        assert(i < crtp().size());
         return crtp().data[i];
     }
 
     T const &operator[](size_t i) const
     {
-        assert(i < N);
+        assert(i < crtp().size());
         return crtp().data[i];
+    }
+
+    CRTP operator+(VecBase<T, CRTP> const &other) const
+    {
+        VecBase<T, CRTP> out;
+        for (size_t i = 0; i < size(); i++)
+        {
+            out.crtp().data[i] = crtp().data[i] + other.crtp().data[i];
+        }
+        return out.crtp();
+    }
+
+    CRTP operator-(VecBase<T, CRTP> const &other) const
+    {
+        VecBase<T, CRTP> out;
+        for (size_t i = 0; i < out.size(); i++)
+        {
+#pragma GCC diagnostic ignored "-Warray-bounds"
+            out.crtp().data[i] = crtp().data[i] - other.crtp().data[i];
+        }
+        return out.crtp();
     }
 };
 
@@ -95,6 +108,11 @@ template <typename T>
 struct Vec<T, 2> : VecBase<T, Vec<T, 2>>
 {
     Vec(T x, T y) : x(x), y(y) {};
+
+    T wedgeComp(Vec<T, 2> const &other)
+    {
+        return x * other.y - y * other.x;
+    }
 
     union
     {
