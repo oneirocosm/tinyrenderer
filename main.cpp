@@ -5,8 +5,8 @@
 #include "geometry.h"
 #include <algorithm>
 
-constexpr int width = 128;
-constexpr int height = 128;
+constexpr int width = 800;
+constexpr int height = 800;
 
 constexpr TGAColor white = {255, 255, 255, 255}; // attention, BGRA order
 constexpr TGAColor green = {0, 255, 0, 255};
@@ -88,9 +88,29 @@ int main(int argc, char **argv)
 {
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
-    triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
-    triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
+    std::optional<Model> maybeModel = Model::create(argv[1]);
+    if (!maybeModel.has_value())
+    {
+        std::cerr << "Error parsing file" << argv[1] << std::endl;
+        return 1;
+    }
+    Model model = maybeModel.value();
+
+    for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
+    {
+        // no need to check maybe in this scenario
+        vec3 a = scale2D(model.vert(faceIdx, 0).value(), width, height);
+        vec3 b = scale2D(model.vert(faceIdx, 1).value(), width, height);
+        vec3 c = scale2D(model.vert(faceIdx, 2).value(), width, height);
+
+        TGAColor color;
+        for (size_t i = 0; i < 3; i++)
+        {
+            color[i] = std::rand() % 255;
+        }
+
+        triangle(a.x, a.y, b.x, b.y, c.x, c.y, framebuffer, color);
+    }
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
