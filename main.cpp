@@ -97,13 +97,9 @@ void triangle(int ax, int ay, TGAColor aColor, int bx, int by, TGAColor bColor, 
                 color[i] = static_cast<unsigned char>(u * aColor[i] + v * bColor[i] + w * cColor[i]);
             }
 
-            if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0)
+            if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0 && !(u > 0.1 && v > 0.1 && w > 0.1))
             {
                 framebuffer.set(x, y, color);
-            }
-            if (u > 0 && v > 0 && w > 0 && triAreaDouble > 0 && (u > 0.1 && v > 0.1 && w > 0.1))
-            {
-                framebuffer.set(x, y, black);
             }
         }
     }
