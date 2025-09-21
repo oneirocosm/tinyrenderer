@@ -78,7 +78,7 @@ void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, in
             double w = abpArea / static_cast<double>(triArea);
 
             unsigned char depth = static_cast<unsigned char>(az * u + bz * v + cz * w);
-            if (u >= 0 && v >= 0 && w >= 0 && triArea >= 0)
+            if ((zbuffer.get(x, y)[0] < depth) && u >= 0 && v >= 0 && w >= 0 && triArea >= 0)
             {
                 framebuffer.set(x, y, color);
                 zbuffer.set(x, y, {depth, depth, depth});
