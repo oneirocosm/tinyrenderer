@@ -52,7 +52,7 @@ double triangleArea(vec2 a, vec2 b, vec2 c)
     return 0.5 * ((b.y - a.y) * (b.x + a.x) + (c.y - b.y) * (c.x + b.x) + (a.y - c.y) * (a.x + c.x));
 }
 
-void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
+void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz, TGAImage &framebuffer, TGAImage &zbuffer, TGAColor color)
 {
     int minX = std::min({ax, bx, cx});
     int maxX = std::max({ax, bx, cx});
@@ -77,9 +77,11 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
             double v = capArea / static_cast<double>(triArea);
             double w = abpArea / static_cast<double>(triArea);
 
+            unsigned char depth = static_cast<unsigned char>(az * u + bz * v + cz * w);
             if (u >= 0 && v >= 0 && w >= 0 && triArea >= 0)
             {
                 framebuffer.set(x, y, color);
+                zbuffer.set(x, y, {depth, depth, depth});
             }
         }
     }
@@ -90,9 +92,15 @@ vec3 scale2D(vec3 input, double width, double height)
     return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0.0);
 }
 
+vec3 scale3D(vec3 input, double width, double height)
+{
+    return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, (input.z + 1.0) * 255.0 / 2.0);
+}
+
 int main(int argc, char **argv)
 {
     TGAImage framebuffer(width, height, TGAImage::RGB);
+    TGAImage zbuffer(width, height, TGAImage::RGB);
 
     std::optional<Model> maybeModel = Model::create(argv[1]);
 
@@ -113,11 +121,9 @@ int main(int argc, char **argv)
 
         // no need to check maybe in this scenario
 
-        vec3 a = scale2D(model.vert(faceIdx, 0).value(), width, height);
-
-        vec3 b = scale2D(model.vert(faceIdx, 1).value(), width, height);
-
-        vec3 c = scale2D(model.vert(faceIdx, 2).value(), width, height);
+        vec3 a = scale3D(model.vert(faceIdx, 0).value(), width, height);
+        vec3 b = scale3D(model.vert(faceIdx, 1).value(), width, height);
+        vec3 c = scale3D(model.vert(faceIdx, 2).value(), width, height);
 
         TGAColor color;
 
@@ -128,9 +134,10 @@ int main(int argc, char **argv)
             color[i] = std::rand() % 255;
         }
 
-        triangle(a.x, a.y, b.x, b.y, c.x, c.y, framebuffer, color);
+        triangle(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, framebuffer, zbuffer, color);
     }
 
     framebuffer.write_tga_file("framebuffer.tga");
+    zbuffer.write_tga_file("zbuffer.tga");
     return 0;
 }

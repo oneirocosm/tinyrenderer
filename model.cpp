@@ -105,30 +105,6 @@ std::optional<Model> Model::create(std::string const filename)
         } // else ignore the line
     }
 
-    std::vector<int> idxReorder(face_idxs.size() / 3);
-    for (size_t i = 0; i < idxReorder.size(); i++)
-    {
-        idxReorder[i] = i;
-    }
-
-    std::sort(idxReorder.begin(), idxReorder.end(), [&](int const &a, int const &b)
-              {
-        double aminz = std::min({vertices[face_idxs[a*3 + 0]].z, vertices[face_idxs[a*3 + 1]].z, vertices[face_idxs[a*3 + 2]].z});
-        double bminz = std::min({vertices[face_idxs[b*3 + 0]].z, vertices[face_idxs[b*3 + 1]].z, vertices[face_idxs[b*3 + 2]].z});
-
-        return aminz < bminz; });
-
-    std::vector<int> face_idxs2(face_idxs.size());
-    for (size_t i = 0; i < idxReorder.size(); i++)
-    {
-        for (size_t j = 0; j < 3; j++)
-        {
-            face_idxs2[i * 3 + j] = face_idxs[idxReorder[i] * 3 + j];
-        }
-    }
-
-    face_idxs = face_idxs2;
-
     return Model(vertices, face_idxs);
 }
 
