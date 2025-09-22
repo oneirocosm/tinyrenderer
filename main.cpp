@@ -120,17 +120,13 @@ int main(int argc, char **argv)
     {
 
         // no need to check maybe in this scenario
-
         vec3 a = scale3D(model.vert(faceIdx, 0).value(), width, height);
         vec3 b = scale3D(model.vert(faceIdx, 1).value(), width, height);
         vec3 c = scale3D(model.vert(faceIdx, 2).value(), width, height);
 
         TGAColor color;
-
         for (size_t i = 0; i < 3; i++)
-
         {
-
             color[i] = std::rand() % 255;
         }
 
