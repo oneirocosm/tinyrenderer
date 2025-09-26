@@ -135,5 +135,21 @@ int main(int argc, char **argv)
 
     framebuffer.write_tga_file("framebuffer.tga");
     zbuffer.write_tga_file("zbuffer.tga");
+
+    Mat<int, 3, 4> test(1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0);
+    std::cout << "the data is " << test.data[0] << test.data[1] << test.data[2] << std::endl;
+    std::cout << "row 2 is " << test.row(1) << " so yay!" << std::endl;
+    std::cout << "col 2 is " << test.col(1) << " so yay!" << std::endl;
+    std::cout << "the output is " << test << " so yay!" << std::endl;
+    std::cout << "the transpose is " << test.transpose() << " so yay!" << std::endl;
+
+    // vec2 a(1, 2);
+    // vec2 b(3, 4);
+    // std::cout << "the multiplication is " << dot(a, b) << " so yay!" << std::endl;
+
+    Mat<double, 2, 3> a(1, 2, 3, 4, 5, 6);
+    Mat<double, 3, 2> b(7, 8, 9, 10, 11, 12);
+    std::cout << "the multiplication is " << 0.3 * a * b << " so yay!" << std::endl;
+
     return 0;
 }
