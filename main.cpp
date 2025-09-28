@@ -109,7 +109,7 @@ vec3 scale2D(vec3 input)
 
 vec3 scale3D(vec3 input)
 {
-    return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, (input.z + 1.0) * 255.0 / 2.0);
+    return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, (input.z + 1.41) * 255.0 / 2.82);
 }
 
 int main(int argc, char **argv)
