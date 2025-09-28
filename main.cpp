@@ -89,19 +89,25 @@ void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, in
     }
 }
 
-vec3 rot(vec3 v)
+vec3 rot(vec3 const v)
 {
     constexpr double angle = M_PI / 6.0;
     mat3x3 rotMat = mat3x3(std::cos(angle), 0., std::sin(angle), 0., 1., 0., -std::sin(angle), 0., std::cos(angle));
     return rotMat * v;
 }
 
-vec3 scale2D(vec3 input, double width, double height)
+vec3 persp(vec3 const v)
+{
+    constexpr double c = 3.0;
+    return 1.0 / (1 - v.z / c) * v;
+}
+
+vec3 scale2D(vec3 input)
 {
     return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0.0);
 }
 
-vec3 scale3D(vec3 input, double width, double height)
+vec3 scale3D(vec3 input)
 {
     return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, (input.z + 1.0) * 255.0 / 2.0);
 }
@@ -129,9 +135,9 @@ int main(int argc, char **argv)
     {
 
         // no need to check maybe in this scenario
-        vec3 a = scale3D(rot(model.vert(faceIdx, 0).value()), width, height);
-        vec3 b = scale3D(rot(model.vert(faceIdx, 1).value()), width, height);
-        vec3 c = scale3D(rot(model.vert(faceIdx, 2).value()), width, height);
+        vec3 a = scale3D(persp(rot(model.vert(faceIdx, 0).value())));
+        vec3 b = scale3D(persp(rot(model.vert(faceIdx, 1).value())));
+        vec3 c = scale3D(persp(rot(model.vert(faceIdx, 2).value())));
 
         TGAColor color;
         for (size_t i = 0; i < 3; i++)
