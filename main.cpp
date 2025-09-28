@@ -1,9 +1,11 @@
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 #include "tgaimage.h"
 #include "model.h"
 #include "geometry.h"
 #include <algorithm>
+#include <numbers>
 
 constexpr int width = 800;
 constexpr int height = 800;
@@ -87,6 +89,13 @@ void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, in
     }
 }
 
+vec3 rot(vec3 v)
+{
+    constexpr double angle = M_PI / 6.0;
+    mat3x3 rotMat = mat3x3(std::cos(angle), 0., std::sin(angle), 0., 1., 0., -std::sin(angle), 0., std::cos(angle));
+    return rotMat * v;
+}
+
 vec3 scale2D(vec3 input, double width, double height)
 {
     return vec3((input.x + 1.0) * width / 2.0, (input.y + 1.0) * height / 2.0, 0.0);
@@ -120,9 +129,9 @@ int main(int argc, char **argv)
     {
 
         // no need to check maybe in this scenario
-        vec3 a = scale3D(model.vert(faceIdx, 0).value(), width, height);
-        vec3 b = scale3D(model.vert(faceIdx, 1).value(), width, height);
-        vec3 c = scale3D(model.vert(faceIdx, 2).value(), width, height);
+        vec3 a = scale3D(rot(model.vert(faceIdx, 0).value()), width, height);
+        vec3 b = scale3D(rot(model.vert(faceIdx, 1).value()), width, height);
+        vec3 c = scale3D(rot(model.vert(faceIdx, 2).value()), width, height);
 
         TGAColor color;
         for (size_t i = 0; i < 3; i++)
@@ -135,35 +144,6 @@ int main(int argc, char **argv)
 
     framebuffer.write_tga_file("framebuffer.tga");
     zbuffer.write_tga_file("zbuffer.tga");
-
-    Mat<int, 3, 4> test(1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0);
-    std::cout << "the data is " << test.data[0] << test.data[1] << test.data[2] << std::endl;
-    std::cout << "row 2 is " << test.row(1) << " so yay!" << std::endl;
-    std::cout << "col 2 is " << test.col(1) << " so yay!" << std::endl;
-    std::cout << "the output is " << test << " so yay!" << std::endl;
-    std::cout << "the transpose is " << test.transpose() << " so yay!" << std::endl;
-
-    // vec2 a(1, 2);
-    // vec2 b(3, 4);
-    // std::cout << "the multiplication is " << dot(a, b) << " so yay!" << std::endl;
-
-    Mat<double, 2, 3> a(1, 2, 3, 4, 5, 6);
-    Mat<double, 3, 2> b(7, 8, 9, 10, 11, 12);
-    std::cout << "the multiplication is " << 0.3 * a * b << " so yay!" << std::endl;
-
-    Mat<double, 2, 2> a2(2, 1, 7, 4);
-    std::cout << "the inverse is " << a2.inv() << " so yay!" << std::endl;
-
-    Mat<double, 3, 3> a3(1, 2, 3, 4, 5, 6, 7, 8, 9);
-    // std::cout << "the minor is " << a3.minor(1, 1) << " so yay!" << std::endl;
-
-    Mat<double, 3, 3> a4(7, 2, 1, 0, 3, -1, -3, 4, -2);
-    // std::cout << "the cofactor is " << a4.cofactor() << " so yay!" << std::endl;
-    std::cout << "the determinant is " << a4.det() << " so yay!" << std::endl;
-
-    Mat<double, 4, 4> a5(1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1);
-    // std::cout << "the cofactor is " << a4.cofactor() << " so yay!" << std::endl;
-    std::cout << "the determinant is " << a5.inv() << " so yay!" << std::endl;
 
     return 0;
 }

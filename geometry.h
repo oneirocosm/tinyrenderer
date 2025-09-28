@@ -637,6 +637,17 @@ auto operator*(Mat<T, N, M> const &a, Mat<U, M, P> const &b) -> Mat<decltype(a.d
     return out;
 }
 
+template <typename T, typename U, size_t N, size_t M>
+auto operator*(Mat<T, N, M> const &a, Vec<U, M> const &b) -> Vec<decltype(a.data[0] * b.data[0]), N>
+{
+    Vec<decltype(a.data[0] * b.data[0]), N> out;
+    for (size_t i = 0; i < N; i++)
+    {
+        out.data[i] = dot(a.row(i), b);
+    }
+    return out;
+}
+
 typedef Mat<double, 2, 2> mat2x2;
 typedef Mat<double, 3, 3> mat3x3;
 typedef Mat<double, 4, 4> mat4x4;
