@@ -151,5 +151,19 @@ int main(int argc, char **argv)
     Mat<double, 3, 2> b(7, 8, 9, 10, 11, 12);
     std::cout << "the multiplication is " << 0.3 * a * b << " so yay!" << std::endl;
 
+    Mat<double, 2, 2> a2(2, 1, 7, 4);
+    std::cout << "the inverse is " << a2.inv() << " so yay!" << std::endl;
+
+    Mat<double, 3, 3> a3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    // std::cout << "the minor is " << a3.minor(1, 1) << " so yay!" << std::endl;
+
+    Mat<double, 3, 3> a4(7, 2, 1, 0, 3, -1, -3, 4, -2);
+    // std::cout << "the cofactor is " << a4.cofactor() << " so yay!" << std::endl;
+    std::cout << "the determinant is " << a4.det() << " so yay!" << std::endl;
+
+    Mat<double, 4, 4> a5(1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1);
+    // std::cout << "the cofactor is " << a4.cofactor() << " so yay!" << std::endl;
+    std::cout << "the determinant is " << a5.inv() << " so yay!" << std::endl;
+
     return 0;
 }

@@ -209,7 +209,7 @@ auto dot(Vec<T, N> const &a, Vec<U, N> const &b) -> decltype(a[0] * b[0])
 }
 
 template <typename T, typename U>
-auto cross(Vec<T, 3> const &a, Vec<U, 3> const &b) -> decltype(a[0] * b[0])
+auto cross(Vec<T, 3> const &a, Vec<U, 3> const &b) -> Vec<decltype(a[0] * b[0]), 3>
 {
     Vec<decltype(a[0] * b[0]), 3> out;
     out.x = a.y * b.z - a.z * b.y;
@@ -327,6 +327,7 @@ struct Mat : MatBase<T, N, M, Mat<T, N, M>>
     Mat<T, M, N> transpose() const
     {
         Mat<T, M, N> out;
+#pragma omp parallel for
         for (size_t i = 0; i < N; i++)
         {
             for (size_t j = 0; j < M; j++)
@@ -355,6 +356,45 @@ struct Mat<T, 2, 2> : MatBase<T, 2, 2, Mat<T, 2, 2>>
             T a00, a01, a10, a11;
         };
     };
+
+    template <typename... Ts>
+    Mat(Ts... inputs) : data({0})
+    {
+        T temp[4] = {static_cast<T>(inputs)...};
+        for (size_t i = 0; i < 4; i++)
+        {
+            data[i] = temp[i];
+        }
+    }
+
+    Mat<T, 2, 2> transpose() const
+    {
+        Mat<T, 2, 2> out;
+#pragma omp parallel for
+        for (size_t i = 0; i < 2; i++)
+        {
+            for (size_t j = 0; j < 2; j++)
+            {
+                out.data[j * 2 + i] = data[i * 2 + j];
+            }
+        }
+        return out;
+    }
+
+    T det() const
+    {
+        return a00 * a11 - a01 * a10;
+    }
+
+    Mat<T, 2, 2> adj() const
+    {
+        return Mat<T, 2, 2>(a11, -a01, -a01, a00);
+    }
+
+    Mat<T, 2, 2> inv() const
+    {
+        return 1 / det() * adj();
+    }
 };
 
 template <typename T>
@@ -368,6 +408,77 @@ struct Mat<T, 3, 3> : MatBase<T, 3, 3, Mat<T, 3, 3>>
             T m00, m01, m02, m10, m11, m12, m20, m21, m22;
         };
     };
+
+    template <typename... Ts>
+    Mat(Ts... inputs) : data({0})
+    {
+        T temp[9] = {static_cast<T>(inputs)...};
+        for (size_t i = 0; i < 9; i++)
+        {
+            data[i] = temp[i];
+        }
+    }
+
+    Mat<T, 3, 3> transpose() const
+    {
+        Mat<T, 3, 3> out;
+#pragma omp parallel for
+        for (size_t i = 0; i < 3; i++)
+        {
+            for (size_t j = 0; j < 3; j++)
+            {
+                out.data[j * 3 + i] = data[i * 3 + j];
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 2, 2> minor(size_t const i, size_t const j) const
+    {
+        Mat<T, 2, 2> out;
+#pragma omp parallel for
+        for (size_t di = 1; di < 3; di++)
+        {
+            size_t const xi = (i + di) % 3;
+
+            for (size_t dj = 1; dj < 3; dj++)
+            {
+                size_t const xj = (j + dj) % 3;
+
+                out(di - 1, dj - 1) = (*this)(xi, xj);
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 3, 3> cofactor() const
+    {
+        Mat<T, 3, 3> out;
+#pragma omp parallel for
+        for (size_t i = 0; i < 3; i++)
+        {
+            for (size_t j = 0; j < 3; j++)
+            {
+                out(i, j) = minor(i, j).det();
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 3, 3> adj() const
+    {
+        return cofactor().transpose();
+    }
+
+    T det() const
+    {
+        return (*this)(0, 0) * minor(0, 0).det() + (*this)(0, 1) * minor(0, 1).det() + (*this)(0, 2) * minor(0, 2).det();
+    }
+
+    Mat<T, 3, 3> inv() const
+    {
+        return 1 / det() * adj();
+    }
 };
 
 template <typename T>
@@ -381,6 +492,78 @@ struct Mat<T, 4, 4> : MatBase<T, 4, 4, Mat<T, 4, 4>>
             T a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33;
         };
     };
+
+    template <typename... Ts>
+    Mat(Ts... inputs) : data({0})
+    {
+        T temp[16] = {static_cast<T>(inputs)...};
+        for (size_t i = 0; i < 16; i++)
+        {
+            data[i] = temp[i];
+        }
+    }
+
+    Mat<T, 4, 4> transpose() const
+    {
+        Mat<T, 4, 4> out;
+#pragma omp parallel for
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (size_t j = 0; j < 4; j++)
+            {
+                out.data[j * 4 + i] = data[i * 4 + j];
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 3, 3> minor(size_t const i, size_t const j) const
+    {
+        Mat<T, 3, 3> out;
+#pragma omp parallel for
+        for (size_t di = 1; di < 4; di++)
+        {
+            size_t const xi = (i + di) % 4;
+
+            for (size_t dj = 1; dj < 4; dj++)
+            {
+                size_t const xj = (j + dj) % 4;
+
+                T sign = static_cast<T>((xi + xj) % 2 ? -1 : 1);
+                out(di - 1, dj - 1) = sign * (*this)(xi, xj);
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 4, 4> cofactor() const
+    {
+        Mat<T, 4, 4> out;
+#pragma omp parallel for
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (size_t j = 0; j < 4; j++)
+            {
+                out(i, j) = minor(i, j).det();
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 4, 4> adj() const
+    {
+        return cofactor().transpose();
+    }
+
+    T det() const
+    {
+        return (*this)(0, 0) * minor(0, 0).det() + (*this)(0, 1) * minor(0, 1).det() + (*this)(0, 2) * minor(0, 2).det() + (*this)(0, 3) * minor(0, 3).det();
+    }
+
+    Mat<T, 4, 4> inv() const
+    {
+        return 1 / det() * adj();
+    }
 };
 
 template <typename T, size_t N, size_t M>
@@ -453,3 +636,7 @@ auto operator*(Mat<T, N, M> const &a, Mat<U, M, P> const &b) -> Mat<decltype(a.d
     }
     return out;
 }
+
+typedef Mat<double, 2, 2> mat2x2;
+typedef Mat<double, 3, 3> mat3x3;
+typedef Mat<double, 4, 4> mat4x4;
