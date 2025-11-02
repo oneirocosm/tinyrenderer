@@ -135,6 +135,7 @@ struct Vec<T, 4> : VecBase<T, Vec<T, 4>>
 {
     Vec(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {};
     Vec() : data({0}) {};
+    Vec(Vec<T, 3> const &v, T const s) : x(v.x), y(v.y), z(v.z), w(s) {};
 
     union
     {
@@ -239,6 +240,13 @@ auto operator*(Vec<T, N> const &v, U const scalar) -> Vec<decltype(v[0] * scalar
         out[i] = v[i] * scalar;
     }
     return out;
+}
+
+template <typename T, size_t N>
+Vec<T, N> norm(Vec<T, N> const &v)
+{
+    T length = std::sqrt(dot(v, v));
+    return (1 / length) * v;
 }
 
 typedef Vec<double, 2> vec2;
@@ -473,6 +481,13 @@ struct Mat<T, 3, 3> : MatBase<T, 3, 3, Mat<T, 3, 3>>
     T det() const
     {
         return (*this)(0, 0) * minor(0, 0).det() + (*this)(0, 1) * minor(0, 1).det() + (*this)(0, 2) * minor(0, 2).det();
+    }
+
+    Mat<T, 3, 3> invertTranspose() const
+    {
+        Mat<T, 3, 3> cofactorMat = cofactor();
+        T denom = dot(cofactorMat.row(0), this->row(0));
+        return (1 / denom) * cofactorMat;
     }
 
     Mat<T, 3, 3> inv() const
