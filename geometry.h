@@ -137,6 +137,11 @@ struct Vec<T, 4> : VecBase<T, Vec<T, 4>>
     Vec() : data({0}) {};
     Vec(Vec<T, 3> const &v, T const s) : x(v.x), y(v.y), z(v.z), w(s) {};
 
+    Vec<T, 3> xyz()
+    {
+        return Vec<T, 3>(data[0], data[1], data[2]);
+    }
+
     union
     {
         T data[4];

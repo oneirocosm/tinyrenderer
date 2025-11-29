@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <numbers>
@@ -35,19 +36,31 @@ struct RandomShader : IShader
     {
         // auto [modelViewMat, perspectiveMat] = uniforms;
         vec3 v = model.vert(face, vert).value();
-        vec4 position = uniforms.modelViewMat * vec4(v.x, v.y, v.z, 1.);
+        vec4 position = norm(uniforms.modelViewMat * vec4(v.x, v.y, v.z, 1.));
         VertexOut out;
         out.position = position;
-        for (size_t i = 0; i < 3; i++)
-        {
-            out.color[i] = std::rand() % 255;
-        }
+        out.normal = model.faceNormal(face, vert).value();
         return out;
     }
 
-    std::pair<bool, TGAColor> fragment(VertexOut const &fragIn) const
+    std::pair<bool, TGAColor> fragment(VertexOut const &fragmentIn) const
     {
-        return std::make_pair(false, fragIn.color);
+        vec3 normal = fragmentIn.normal;
+        vec3 light(1., 1., 1.);
+        double ambCoeff = .3;
+        double diffCoeff = .4;
+        double specCoeff = .9;
+
+        double ambient = 1;
+        double diffuse = std::max(0., dot(light, normal));
+
+        vec3 reflected = norm(2 * normal * dot(light, normal) - light);
+        double specular = std::pow(std::max(0., reflected.z), 35);
+        double rad = std::min(1., ambCoeff * ambient + diffCoeff * diffuse + specCoeff * specular);
+
+        unsigned char crad = static_cast<unsigned char>(rad * 255);
+        TGAColor color = {crad, crad, crad};
+        return std::make_pair(false, color);
     };
 };
 
@@ -55,19 +68,19 @@ int main(int argc, char **argv)
 {
     TGAImage framebuffer(width, height, TGAImage::RGB);
     auto zbuffer = createZbuffer(width, height);
+    std::vector<Model> models;
 
-    std::optional<Model> maybeModel = Model::create(argv[1]);
-
-    if (!maybeModel.has_value())
-
+    for (int i = 1; i < argc; ++i)
     {
-
-        std::cerr << "Error parsing file" << argv[1] << std::endl;
-
-        return 1;
+        std::optional<Model> maybeModel = Model::create(argv[i]);
+        if (!maybeModel.has_value())
+        {
+            std::cerr << "Error parsing file" << argv[i] << std::endl;
+            return 1;
+        }
+        models.push_back(maybeModel.value());
     }
 
-    Model model = maybeModel.value();
     vec3 const eye(-1., 0., 2.);
     vec3 const center(0., 0., 0.);
     vec3 const up(0., 1., 0.);
@@ -82,25 +95,20 @@ int main(int argc, char **argv)
         modelViewMat,
         perspectiveMat};
 
-    RandomShader tempShader(model, uniforms);
-
-    for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
+    for (auto model : models)
     {
+        RandomShader tempShader(model, uniforms);
 
-        // no need to check maybe in this scenario
-        Triangle vertOut;
-        for (size_t i : {0, 1, 2})
+        for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
         {
-            vertOut[i] = tempShader.vertex(faceIdx, i);
-        }
-        /*
-        vec4 a = transform * vec4(model.vert(faceIdx, 0).value(), 1.);
-        vec4 b = transform * vec4(model.vert(faceIdx, 1).value(), 1.);
-        vec4 c = transform * vec4(model.vert(faceIdx, 2).value(), 1.);
-        vec4 triangle[3] = {a, b, c};
-        */
+            std::array<VertexOut, 3> vertOut;
+            for (size_t i : {0, 1, 2})
+            {
+                vertOut[i] = tempShader.vertex(faceIdx, i);
+            }
 
-        rasterize(vertOut, tempShader, framebuffer, zbuffer, viewportMat);
+            rasterize(vertOut, tempShader, framebuffer, zbuffer, viewportMat);
+        }
     }
     framebuffer.write_tga_file("framebuffer.tga");
 

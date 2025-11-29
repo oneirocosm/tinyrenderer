@@ -6,7 +6,7 @@
 #include <optional>
 #include <regex>
 
-Model::Model(std::vector<vec3> const vertices, std::vector<int> const face_idxs) : vertices(vertices), face_idxs(face_idxs) {};
+Model::Model(std::vector<vec3> const vertices, std::vector<vec3> const face_normals, std::vector<int> const face_idxs) : vertices(vertices), face_normals(face_normals), face_idxs(face_idxs) {};
 
 std::vector<std::string> Model::string_split(std::string const input, std::string const sep)
 {
@@ -55,6 +55,7 @@ std::optional<Model> Model::create(std::string const filename)
         return std::nullopt;
     }
     std::vector<vec3> vertices;
+    std::vector<vec3> face_normals;
     std::vector<int> face_idxs;
 
     std::string line;
@@ -99,13 +100,23 @@ std::optional<Model> Model::create(std::string const filename)
             {
                 return std::nullopt;
             }
-            face_idxs.push_back(maybe_idx1.value() - 1);
-            face_idxs.push_back(maybe_idx2.value() - 1);
-            face_idxs.push_back(maybe_idx3.value() - 1);
+            int idx1 = maybe_idx1.value() - 1;
+            int idx2 = maybe_idx2.value() - 1;
+            int idx3 = maybe_idx3.value() - 1;
+            face_idxs.push_back(idx1);
+            face_idxs.push_back(idx2);
+            face_idxs.push_back(idx3);
+
+            // temporary get the actual positions and use them to compute face normals
+            vec3 pos1 = vertices[idx1];
+            vec3 pos2 = vertices[idx2];
+            vec3 pos3 = vertices[idx3];
+            vec3 normVec = norm(cross(pos2 - pos1, pos3 - pos1));
+            face_normals.push_back(normVec);
         } // else ignore the line
     }
 
-    return Model(vertices, face_idxs);
+    return Model(vertices, face_normals, face_idxs);
 }
 
 std::optional<vec3> Model::vert(size_t const idx) const
@@ -125,6 +136,15 @@ std::optional<vec3> Model::vert(size_t const faceIdx, size_t const idx) const
     }
     return vertices[face_idxs[3 * faceIdx + idx]];
 };
+
+std::optional<vec3> Model::faceNormal(size_t const faceIdx, size_t const idx) const
+{
+    if (faceIdx >= nfaces() || idx > 2)
+    {
+        return std::nullopt;
+    }
+    return face_normals[faceIdx];
+}
 
 size_t Model::nverts() const
 {

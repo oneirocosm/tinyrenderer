@@ -3,6 +3,7 @@
 #include "tgaimage.h"
 
 #include <algorithm>
+#include <array>
 
 mat4x4 createViewportMat(int const x, int const y, int const w, int const h)
 {
@@ -40,7 +41,7 @@ std::vector<double> createZbuffer(int const width, int const height)
     return zbuffer;
 }
 
-void rasterize(Triangle const &vertOut, IShader &shader, TGAImage &framebuffer, std::vector<double> &zbuffer, mat4x4 const &viewportMat)
+void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImage &framebuffer, std::vector<double> &zbuffer, mat4x4 const &viewportMat)
 {
     vec4 clip[3];
     for (size_t i : {0, 1, 2})
@@ -86,7 +87,7 @@ void rasterize(Triangle const &vertOut, IShader &shader, TGAImage &framebuffer, 
                 continue;
             }
             vec4 point(x, y, z, 1.);
-            VertexOut fragIn{point, vertOut[0].color}; // interpolation should happen here
+            VertexOut fragIn{point, vertOut[0].normal}; // interpolation should happen here
             auto [discard, color] = shader.fragment(fragIn);
             if (discard)
             {
