@@ -38,7 +38,7 @@ struct RandomShader : IShader
         vec3 v = model.vert(face, vert).value();
         vec4 position = norm(uniforms.modelViewMat * vec4(v.x, v.y, v.z, 1.));
         VertexOut out;
-        out.position = position;
+        out.position = uniforms.perspectiveMat * position;
         out.normal = model.faceNormal(face, vert).value();
         return out;
     }
