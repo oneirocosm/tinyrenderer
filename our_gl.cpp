@@ -41,6 +41,19 @@ std::vector<double> createZbuffer(int const width, int const height)
     return zbuffer;
 }
 
+VertexOut VertexOut::interpolate(std::array<VertexOut, 3> const &vertOut, vec3 const &bc)
+{
+    VertexOut out{};
+    /*
+    std::array<vec3, 3> normals;
+    std::transform(vertOut.begin(), vertOut.end(), normals.begin(), [&](VertexOut in)
+                   { return vec3(in.normal[0], in.normal[1], in.normal[2]); });
+    out.normal = norm(interpolateInternal(normals, bc));
+    */
+    out.normal = norm(vec3(bc[0] * vertOut[0].normal + bc[1] * vertOut[1].normal + bc[2] * vertOut[2].normal));
+    return out;
+}
+
 void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImage &framebuffer, std::vector<double> &zbuffer, mat4x4 const &viewportMat)
 {
     vec4 clip[3];
@@ -87,7 +100,8 @@ void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImag
                 continue;
             }
             vec4 point(x, y, z, 1.);
-            VertexOut fragIn{point, vertOut[0].normal}; // interpolation should happen here
+            VertexOut fragIn = VertexOut::interpolate(vertOut, bc);
+            fragIn.position = point;
             auto [discard, color] = shader.fragment(fragIn);
             if (discard)
             {

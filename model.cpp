@@ -6,7 +6,7 @@
 #include <optional>
 #include <regex>
 
-Model::Model(std::vector<vec3> const vertices, std::vector<vec3> const face_normals, std::vector<int> const face_idxs) : vertices(vertices), face_normals(face_normals), face_idxs(face_idxs) {};
+Model::Model(std::vector<vec3> const vertices, std::vector<vec3> const face_normals, std::vector<vec3> const normals, std::vector<int> const positionIdxs, std::vector<int> const normalIdxs) : vertices(vertices), face_normals(face_normals), normals(normals), positionIdxs(positionIdxs), normalIdxs(normalIdxs) {};
 
 std::vector<std::string> Model::string_split(std::string const input, std::string const sep)
 {
@@ -45,6 +45,26 @@ std::optional<int> Model::try_first_idx(std::string const input)
     return out;
 }
 
+std::optional<int> Model::try_idx(std::string const input, size_t idx)
+{
+    std::vector<std::string> idx_str = string_split(input, "[^/]+");
+    if (idx > 2)
+    {
+        return std::nullopt;
+    }
+    if (idx_str.size() != 3)
+    {
+        return std::nullopt;
+    }
+    char *err;
+    double out = strtol(idx_str[idx].c_str(), &err, 10);
+    if (*err)
+    {
+        return std::nullopt;
+    }
+    return out;
+}
+
 // public
 
 std::optional<Model> Model::create(std::string const filename)
@@ -56,7 +76,9 @@ std::optional<Model> Model::create(std::string const filename)
     }
     std::vector<vec3> vertices;
     std::vector<vec3> face_normals;
-    std::vector<int> face_idxs;
+    std::vector<vec3> normals;
+    std::vector<int> positionIdxs;
+    std::vector<int> normalIdxs;
 
     std::string line;
     while (getline(input_stream, line))
@@ -83,15 +105,34 @@ std::optional<Model> Model::create(std::string const filename)
             vec3 vertex = vec3({maybe_x.value(), maybe_y.value(), maybe_z.value()});
             vertices.push_back(vertex);
         }
+        if (words[0] == "vn")
+        {
+            if (words.size() != 4)
+            {
+                return std::nullopt;
+            }
+            std::optional<double> maybe_x = try_stod(words[1]);
+            std::optional<double> maybe_y = try_stod(words[2]);
+            std::optional<double> maybe_z = try_stod(words[3]);
+            if (!maybe_x.has_value() || !maybe_y.has_value() || !maybe_z.has_value())
+            {
+                return std::nullopt;
+            }
+
+            vec3 vertex = vec3({maybe_x.value(), maybe_y.value(), maybe_z.value()});
+            normals.push_back(norm(vertex));
+        }
         else if (words[0] == "f")
         {
             if (words.size() != 4)
             {
                 return std::nullopt;
             }
-            std::optional<double> maybe_idx1 = try_first_idx(words[1]);
-            std::optional<double> maybe_idx2 = try_first_idx(words[2]);
-            std::optional<double> maybe_idx3 = try_first_idx(words[3]);
+
+            // positions
+            std::optional<int> maybe_idx1 = try_first_idx(words[1]);
+            std::optional<int> maybe_idx2 = try_first_idx(words[2]);
+            std::optional<int> maybe_idx3 = try_first_idx(words[3]);
             if (!maybe_idx1.has_value() || !maybe_idx2.has_value() || !maybe_idx3.has_value())
             {
                 return std::nullopt;
@@ -103,11 +144,30 @@ std::optional<Model> Model::create(std::string const filename)
             int idx1 = maybe_idx1.value() - 1;
             int idx2 = maybe_idx2.value() - 1;
             int idx3 = maybe_idx3.value() - 1;
-            face_idxs.push_back(idx1);
-            face_idxs.push_back(idx2);
-            face_idxs.push_back(idx3);
+            positionIdxs.push_back(idx1);
+            positionIdxs.push_back(idx2);
+            positionIdxs.push_back(idx3);
 
-            // temporary get the actual positions and use them to compute face normals
+            // normals
+            std::optional<int> maybeNormalIdx1 = try_idx(words[1], 2);
+            std::optional<int> maybeNormalIdx2 = try_idx(words[2], 2);
+            std::optional<int> maybeNormalIdx3 = try_idx(words[3], 2);
+            if (!maybeNormalIdx1.has_value() || !maybeNormalIdx2.has_value() || !maybeNormalIdx3.has_value())
+            {
+                return std::nullopt;
+            }
+            if (maybeNormalIdx1.value() < 1 || maybeNormalIdx2.value() < 1 || maybeNormalIdx3.value() < 1)
+            {
+                return std::nullopt;
+            }
+            int normalIdx1 = maybeNormalIdx1.value() - 1;
+            int normalIdx2 = maybeNormalIdx2.value() - 1;
+            int normalIdx3 = maybeNormalIdx3.value() - 1;
+            normalIdxs.push_back(normalIdx1);
+            normalIdxs.push_back(normalIdx2);
+            normalIdxs.push_back(normalIdx3);
+
+            // compute face normals
             vec3 pos1 = vertices[idx1];
             vec3 pos2 = vertices[idx2];
             vec3 pos3 = vertices[idx3];
@@ -116,7 +176,7 @@ std::optional<Model> Model::create(std::string const filename)
         } // else ignore the line
     }
 
-    return Model(vertices, face_normals, face_idxs);
+    return Model(vertices, face_normals, normals, positionIdxs, normalIdxs);
 }
 
 std::optional<vec3> Model::vert(size_t const idx) const
@@ -134,7 +194,7 @@ std::optional<vec3> Model::vert(size_t const faceIdx, size_t const idx) const
     {
         return std::nullopt;
     }
-    return vertices[face_idxs[3 * faceIdx + idx]];
+    return vertices[positionIdxs[3 * faceIdx + idx]];
 };
 
 std::optional<vec3> Model::faceNormal(size_t const faceIdx, size_t const idx) const
@@ -146,6 +206,15 @@ std::optional<vec3> Model::faceNormal(size_t const faceIdx, size_t const idx) co
     return face_normals[faceIdx];
 }
 
+std::optional<vec3> Model::normal(size_t const faceIdx, size_t const idx) const
+{
+    if (faceIdx >= nfaces() || idx > 2)
+    {
+        return std::nullopt;
+    }
+    return normals[normalIdxs[3 * faceIdx + idx]];
+};
+
 size_t Model::nverts() const
 {
     return vertices.size();
@@ -153,5 +222,5 @@ size_t Model::nverts() const
 
 size_t Model::nfaces() const
 {
-    return face_idxs.size() / 3;
+    return positionIdxs.size() / 3;
 };

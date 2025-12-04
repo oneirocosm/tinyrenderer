@@ -39,14 +39,17 @@ struct RandomShader : IShader
         vec4 position = norm(uniforms.modelViewMat * vec4(v.x, v.y, v.z, 1.));
         VertexOut out;
         out.position = uniforms.perspectiveMat * position;
-        out.normal = model.faceNormal(face, vert).value();
+        vec3 normal3d = model.normal(face, vert).value();
+        vec4 normal(normal3d.x, normal3d.y, normal3d.z, 0.);
+        out.normal = norm((uniforms.modelViewMat.invertTranspose() * normal).xyz());
         return out;
     }
 
     std::pair<bool, TGAColor> fragment(VertexOut const &fragmentIn) const
     {
-        vec3 normal = fragmentIn.normal;
-        vec3 light(1., 1., 1.);
+        vec3 normal = norm(fragmentIn.normal);
+        vec4 light4d(1., 1., 1., 0);
+        vec3 light = norm((uniforms.modelViewMat * light4d).xyz());
         double ambCoeff = .3;
         double diffCoeff = .4;
         double specCoeff = .9;

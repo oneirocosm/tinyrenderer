@@ -570,6 +570,13 @@ struct Mat<T, 4, 4> : MatBase<T, 4, 4, Mat<T, 4, 4>>
         return out;
     }
 
+    Mat<T, 4, 4> invertTranspose() const
+    {
+        Mat<T, 4, 4> cofactorMat = cofactor();
+        T denom = dot(cofactorMat.row(0), this->row(0));
+        return (1 / denom) * cofactorMat;
+    }
+
     Mat<T, 4, 4> adj() const
     {
         return cofactor().transpose();
