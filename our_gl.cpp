@@ -51,6 +51,7 @@ VertexOut VertexOut::interpolate(std::array<VertexOut, 3> const &vertOut, vec3 c
     out.normal = norm(interpolateInternal(normals, bc));
     */
     out.normal = norm(vec3(bc[0] * vertOut[0].normal + bc[1] * vertOut[1].normal + bc[2] * vertOut[2].normal));
+    out.uv = vec2(bc[0] * vertOut[0].uv + bc[1] * vertOut[1].uv + bc[2] * vertOut[2].uv);
     return out;
 }
 

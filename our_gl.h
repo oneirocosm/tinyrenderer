@@ -14,6 +14,7 @@ std::vector<double> createZbuffer(int const width, int const height);
 struct VertexOut
 {
     vec4 position;
+    vec2 uv;
     vec3 normal;
 
     static VertexOut interpolate(std::array<VertexOut, 3> const &vertOut, vec3 const &vc);

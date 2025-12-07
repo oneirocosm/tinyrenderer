@@ -1,12 +1,13 @@
 #include "geometry.h"
 #include "model.h"
+#include "tgaimage.h"
 #include <vector>
 #include <string>
 #include <fstream>
 #include <optional>
 #include <regex>
 
-Model::Model(std::vector<vec3> const vertices, std::vector<vec3> const face_normals, std::vector<vec3> const normals, std::vector<int> const positionIdxs, std::vector<int> const normalIdxs) : vertices(vertices), face_normals(face_normals), normals(normals), positionIdxs(positionIdxs), normalIdxs(normalIdxs) {};
+Model::Model(std::vector<vec3> const vertices, std::vector<vec3> const face_normals, std::vector<vec2> const uvs, std::vector<vec3> const normals, std::vector<int> const positionIdxs, std::vector<int> const uvIdxs, std::vector<int> const normalIdxs, TGAImage const normalMap) : vertices(vertices), face_normals(face_normals), uvs(uvs), normals(normals), positionIdxs(positionIdxs), uvIdxs(uvIdxs), normalIdxs(normalIdxs), normalMap(normalMap) {};
 
 std::vector<std::string> Model::string_split(std::string const input, std::string const sep)
 {
@@ -69,6 +70,7 @@ std::optional<int> Model::try_idx(std::string const input, size_t idx)
 
 std::optional<Model> Model::create(std::string const filename)
 {
+    std::cout << filename << std::endl;
     std::ifstream input_stream(filename);
     if (!input_stream)
     {
@@ -76,8 +78,10 @@ std::optional<Model> Model::create(std::string const filename)
     }
     std::vector<vec3> vertices;
     std::vector<vec3> face_normals;
+    std::vector<vec2> uvs;
     std::vector<vec3> normals;
     std::vector<int> positionIdxs;
+    std::vector<int> uvIdxs;
     std::vector<int> normalIdxs;
 
     std::string line;
@@ -105,7 +109,7 @@ std::optional<Model> Model::create(std::string const filename)
             vec3 vertex = vec3({maybe_x.value(), maybe_y.value(), maybe_z.value()});
             vertices.push_back(vertex);
         }
-        if (words[0] == "vn")
+        else if (words[0] == "vn")
         {
             if (words.size() != 4)
             {
@@ -121,6 +125,23 @@ std::optional<Model> Model::create(std::string const filename)
 
             vec3 vertex = vec3({maybe_x.value(), maybe_y.value(), maybe_z.value()});
             normals.push_back(norm(vertex));
+        }
+        else if (words[0] == "vt")
+        {
+            if (words.size() != 4)
+            {
+                return std::nullopt;
+            }
+            std::optional<double> maybe_x = try_stod(words[1]);
+            std::optional<double> maybe_y = try_stod(words[2]);
+            std::optional<double> maybe_z = try_stod(words[3]);
+            if (!maybe_x.has_value() || !maybe_y.has_value() || !maybe_z.has_value())
+            {
+                return std::nullopt;
+            }
+
+            vec2 vertex = vec2({maybe_x.value(), maybe_y.value()});
+            uvs.push_back(vertex);
         }
         else if (words[0] == "f")
         {
@@ -147,6 +168,25 @@ std::optional<Model> Model::create(std::string const filename)
             positionIdxs.push_back(idx1);
             positionIdxs.push_back(idx2);
             positionIdxs.push_back(idx3);
+
+            // uvs
+            std::optional<int> maybeUvIdx1 = try_idx(words[1], 1);
+            std::optional<int> maybeUvIdx2 = try_idx(words[2], 1);
+            std::optional<int> maybeUvIdx3 = try_idx(words[3], 1);
+            if (!maybeUvIdx1.has_value() || !maybeUvIdx2.has_value() || !maybeUvIdx3.has_value())
+            {
+                return std::nullopt;
+            }
+            if (maybeUvIdx1.value() < 1 || maybeUvIdx2.value() < 1 || maybeUvIdx3.value() < 1)
+            {
+                return std::nullopt;
+            }
+            int uvIdx1 = maybeUvIdx1.value() - 1;
+            int uvIdx2 = maybeUvIdx2.value() - 1;
+            int uvIdx3 = maybeUvIdx3.value() - 1;
+            uvIdxs.push_back(uvIdx1);
+            uvIdxs.push_back(uvIdx2);
+            uvIdxs.push_back(uvIdx3);
 
             // normals
             std::optional<int> maybeNormalIdx1 = try_idx(words[1], 2);
@@ -176,7 +216,16 @@ std::optional<Model> Model::create(std::string const filename)
         } // else ignore the line
     }
 
-    return Model(vertices, face_normals, normals, positionIdxs, normalIdxs);
+    std::regex objExt("[.]obj");
+    std::string nmfile = std::regex_replace(filename, objExt, "") + "_nm.tga";
+    TGAImage normalMap;
+    auto ok = normalMap.read_tga_file(nmfile);
+    if (!ok)
+    {
+        return std::nullopt;
+    }
+
+    return Model(vertices, face_normals, uvs, normals, positionIdxs, uvIdxs, normalIdxs, normalMap);
 }
 
 std::optional<vec3> Model::vert(size_t const idx) const
@@ -186,7 +235,7 @@ std::optional<vec3> Model::vert(size_t const idx) const
         return std::nullopt;
     }
     return vertices[idx];
-};
+}
 
 std::optional<vec3> Model::vert(size_t const faceIdx, size_t const idx) const
 {
@@ -206,6 +255,15 @@ std::optional<vec3> Model::faceNormal(size_t const faceIdx, size_t const idx) co
     return face_normals[faceIdx];
 }
 
+std::optional<vec2> Model::uv(size_t const faceIdx, size_t const idx) const
+{
+    if (faceIdx >= nfaces() || idx > 2)
+    {
+        return std::nullopt;
+    }
+    return uvs[uvIdxs[3 * faceIdx + idx]];
+}
+
 std::optional<vec3> Model::normal(size_t const faceIdx, size_t const idx) const
 {
     if (faceIdx >= nfaces() || idx > 2)
@@ -213,14 +271,28 @@ std::optional<vec3> Model::normal(size_t const faceIdx, size_t const idx) const
         return std::nullopt;
     }
     return normals[normalIdxs[3 * faceIdx + idx]];
-};
+}
+
+vec3 Model::getNm(double const u, double const v) const
+{
+    int nearestU = std::round(u * normalMap.width());
+    int nearestV = std::round((1 - v) * normalMap.height());
+    auto sample = normalMap.get(nearestU, nearestV);
+    vec3 out;
+    for (size_t i : {0, 1, 2})
+    {
+        out.data[2 - i] = sample[i] * (2. / 255) - 1;
+    }
+
+    return norm(out);
+}
 
 size_t Model::nverts() const
 {
     return vertices.size();
-};
+}
 
 size_t Model::nfaces() const
 {
     return positionIdxs.size() / 3;
-};
+}
