@@ -7,7 +7,25 @@
 #include <optional>
 #include <regex>
 
-Model::Model(std::vector<vec3> const vertices, std::vector<vec3> const face_normals, std::vector<vec2> const uvs, std::vector<vec3> const normals, std::vector<int> const positionIdxs, std::vector<int> const uvIdxs, std::vector<int> const normalIdxs, TGAImage const normalMap) : vertices(vertices), face_normals(face_normals), uvs(uvs), normals(normals), positionIdxs(positionIdxs), uvIdxs(uvIdxs), normalIdxs(normalIdxs), normalMap(normalMap) {};
+Model::Model(
+    std::vector<vec3> const vertices,
+    std::vector<vec3> const face_normals,
+    std::vector<vec2> const uvs,
+    std::vector<vec3> const normals,
+    std::vector<int> const positionIdxs,
+    std::vector<int> const uvIdxs,
+    std::vector<int> const normalIdxs,
+    TGAImage const normalMap,
+    TGAImage const texDiff,
+    TGAImage const texSpec) : vertices(vertices),
+                              face_normals(face_normals),
+                              uvs(uvs), normals(normals),
+                              positionIdxs(positionIdxs),
+                              uvIdxs(uvIdxs),
+                              normalIdxs(normalIdxs),
+                              normalMap(normalMap),
+                              texDiff(texDiff),
+                              texSpec(texSpec) {};
 
 std::vector<std::string> Model::string_split(std::string const input, std::string const sep)
 {
@@ -225,7 +243,33 @@ std::optional<Model> Model::create(std::string const filename)
         return std::nullopt;
     }
 
-    return Model(vertices, face_normals, uvs, normals, positionIdxs, uvIdxs, normalIdxs, normalMap);
+    std::string difffile = std::regex_replace(filename, objExt, "") + "_diffuse.tga";
+    TGAImage texDiff;
+    ok = texDiff.read_tga_file(difffile);
+    if (!ok)
+    {
+        return std::nullopt;
+    }
+
+    std::string specfile = std::regex_replace(filename, objExt, "") + "_spec.tga";
+    TGAImage texSpec;
+    ok = texSpec.read_tga_file(specfile);
+    if (!ok)
+    {
+        return std::nullopt;
+    }
+
+    return Model(
+        vertices,
+        face_normals,
+        uvs,
+        normals,
+        positionIdxs,
+        uvIdxs,
+        normalIdxs,
+        normalMap,
+        texDiff,
+        texSpec);
 }
 
 std::optional<vec3> Model::vert(size_t const idx) const
@@ -285,6 +329,34 @@ vec3 Model::getNm(double const u, double const v) const
     }
 
     return norm(out);
+}
+
+vec4 Model::getSpec(double const u, double const v) const
+{
+    int nearestU = std::round(u * normalMap.width());
+    int nearestV = std::round((1 - v) * normalMap.height());
+    auto sample = texSpec.get(nearestU, nearestV);
+    vec4 out;
+    for (size_t i : {0, 1, 2, 3})
+    {
+        out.data[i] = sample[i];
+    }
+
+    return out;
+}
+
+vec4 Model::getDiff(double const u, double const v) const
+{
+    int nearestU = std::round(u * normalMap.width());
+    int nearestV = std::round((1 - v) * normalMap.height());
+    auto sample = texDiff.get(nearestU, nearestV);
+    vec4 out;
+    for (size_t i : {0, 1, 2, 3})
+    {
+        out.data[i] = sample[i];
+    }
+
+    return out;
 }
 
 size_t Model::nverts() const

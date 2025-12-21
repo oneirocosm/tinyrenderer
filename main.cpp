@@ -48,7 +48,9 @@ struct RandomShader : IShader
 
     std::pair<bool, TGAColor> fragment(VertexOut const &fragmentIn) const
     {
-        vec3 normalRaw = model.getNm(fragmentIn.uv.x, fragmentIn.uv.y);
+        double u = fragmentIn.uv.x;
+        double v = fragmentIn.uv.y;
+        vec3 normalRaw = model.getNm(u, v);
         vec3 normal = norm((uniforms.modelViewMat.invertTranspose() * vec4(normalRaw.x, normalRaw.y, normalRaw.z, 0)).xyz());
         vec4 light4d(1., 1., 1., 0);
         vec3 light = norm((uniforms.modelViewMat * light4d).xyz());
@@ -60,11 +62,15 @@ struct RandomShader : IShader
         double diffuse = std::max(0., dot(light, normal));
 
         vec3 reflected = norm(2 * normal * dot(light, normal) - light);
-        double specular = std::pow(std::max(0., reflected.z), 35);
+        double specular = std::pow(std::max(0., reflected.z), model.getSpec(u, v)[0]);
         double rad = std::min(1., ambCoeff * ambient + diffCoeff * diffuse + specCoeff * specular);
 
-        unsigned char crad = static_cast<unsigned char>(rad * 255);
-        TGAColor color = {crad, crad, crad};
+        auto colorVec = model.getDiff(u, v);
+        TGAColor color;
+        for (int i : {0, 1, 2})
+        {
+            color[i] = static_cast<unsigned char>(rad * colorVec[i]);
+        }
         return std::make_pair(false, color);
     };
 };
