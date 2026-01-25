@@ -10,23 +10,27 @@ class Model
 {
     std::vector<vec3> vertices;
     std::vector<vec3> face_normals;
+    std::vector<Mat<double, 2, 3>> face_tb;
     std::vector<vec2> uvs;
     std::vector<vec3> normals;
     std::vector<int> positionIdxs;
     std::vector<int> uvIdxs;
     std::vector<int> normalIdxs;
     TGAImage normalMap;
+    TGAImage tangentNormalMap;
     TGAImage texDiff;
     TGAImage texSpec;
     Model(
         std::vector<vec3> const vertices,
         std::vector<vec3> const face_normals,
+        std::vector<Mat<double, 2, 3>> const face_tb,
         std::vector<vec2> const uvs,
         std::vector<vec3> const normals,
         std::vector<int> const positionIdxs,
         std::vector<int> const uvIdxs,
         std::vector<int> const normalIdxs,
         TGAImage const normalMap,
+        TGAImage const tangentNormalMap,
         TGAImage const texDiff,
         TGAImage const texSpec);
     static std::vector<std::string> string_split(std::string const input, std::string const sep);
@@ -39,9 +43,11 @@ public:
     std::optional<vec3> vert(size_t const idx) const;
     std::optional<vec3> vert(size_t const faceIdx, size_t const idx) const;
     std::optional<vec3> faceNormal(size_t const faceIdx, size_t const idx) const;
+    std::optional<Mat<double, 2, 3>> faceTb(size_t const faceIdx, size_t const idx) const;
     std::optional<vec2> uv(size_t const faceIdx, size_t const idx) const;
     std::optional<vec3> normal(size_t const faceIdx, size_t const idx) const;
     vec3 getNm(double const u, double const v) const;
+    vec3 getTangentNm(double const u, double const v) const;
     vec4 getSpec(double const u, double const v) const;
     vec4 getDiff(double const u, double const v) const;
 

@@ -14,6 +14,7 @@ std::vector<double> createZbuffer(int const width, int const height);
 struct VertexOut
 {
     vec4 position;
+    Mat<double, 2, 3> tbFrame;
     vec2 uv;
     vec3 normal;
 

@@ -401,7 +401,36 @@ struct Mat<T, 2, 2> : MatBase<T, 2, 2, Mat<T, 2, 2>>
 
     Mat<T, 2, 2> adj() const
     {
-        return Mat<T, 2, 2>(a11, -a01, -a01, a00);
+        return Mat<T, 2, 2>(a11, -a10, -a01, a00);
+    }
+
+    T minor(size_t const i, size_t const j) const
+    {
+        size_t const xi = (i + 1) % 2;
+
+        size_t const xj = (j + 1) % 2;
+        return (*this)(xi, xj);
+    }
+
+    Mat<T, 2, 2> cofactor() const
+    {
+        Mat<T, 2, 2> out;
+#pragma omp parallel for
+        for (size_t i = 0; i < 2; i++)
+        {
+            for (size_t j = 0; j < 2; j++)
+            {
+                out(i, j) = minor(i, j) * ((i + j) % 2 ? -1 : 1);
+            }
+        }
+        return out;
+    }
+
+    Mat<T, 2, 2> invertTranspose() const
+    {
+        Mat<T, 2, 2> cofactorMat = cofactor();
+        T denom = dot(cofactorMat.row(0), this->row(0));
+        return (1 / denom) * cofactorMat;
     }
 
     Mat<T, 2, 2> inv() const
@@ -429,6 +458,19 @@ struct Mat<T, 3, 3> : MatBase<T, 3, 3, Mat<T, 3, 3>>
         for (size_t i = 0; i < 9; i++)
         {
             data[i] = temp[i];
+        }
+    }
+
+    Mat(vec3 v0, vec3 v1, vec3 v2)
+    {
+        size_t i = 0;
+        for (auto v : {v0, v1, v2})
+        {
+            for (size_t j = 0; j < 3; ++j)
+            {
+                data[i] = v.data[j];
+                ++i;
+            }
         }
     }
 
@@ -520,6 +562,19 @@ struct Mat<T, 4, 4> : MatBase<T, 4, 4, Mat<T, 4, 4>>
         for (size_t i = 0; i < 16; i++)
         {
             data[i] = temp[i];
+        }
+    }
+
+    Mat(vec4 row0, vec4 row1, vec4 row2, vec4 row3) : data({0})
+    {
+        size_t i = 0;
+        for (auto row : {row0, row1, row2, row3})
+        {
+            for (size_t j = 0; j < 4; ++j)
+            {
+                data[i] = row.data[j];
+                ++i;
+            }
         }
     }
 

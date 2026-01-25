@@ -10,20 +10,24 @@
 Model::Model(
     std::vector<vec3> const vertices,
     std::vector<vec3> const face_normals,
+    std::vector<Mat<double, 2, 3>> const face_tb,
     std::vector<vec2> const uvs,
     std::vector<vec3> const normals,
     std::vector<int> const positionIdxs,
     std::vector<int> const uvIdxs,
     std::vector<int> const normalIdxs,
     TGAImage const normalMap,
+    TGAImage const tangentNormalMap,
     TGAImage const texDiff,
     TGAImage const texSpec) : vertices(vertices),
                               face_normals(face_normals),
+                              face_tb(face_tb),
                               uvs(uvs), normals(normals),
                               positionIdxs(positionIdxs),
                               uvIdxs(uvIdxs),
                               normalIdxs(normalIdxs),
                               normalMap(normalMap),
+                              tangentNormalMap(tangentNormalMap),
                               texDiff(texDiff),
                               texSpec(texSpec) {};
 
@@ -96,6 +100,7 @@ std::optional<Model> Model::create(std::string const filename)
     }
     std::vector<vec3> vertices;
     std::vector<vec3> face_normals;
+    std::vector<Mat<double, 2, 3>> face_tb;
     std::vector<vec2> uvs;
     std::vector<vec3> normals;
     std::vector<int> positionIdxs;
@@ -231,6 +236,21 @@ std::optional<Model> Model::create(std::string const filename)
             vec3 pos3 = vertices[idx3];
             vec3 normVec = norm(cross(pos2 - pos1, pos3 - pos1));
             face_normals.push_back(normVec);
+
+            // compute tangent and bitangent
+            vec2 uv1 = uvs[uvIdx1];
+            vec2 uv2 = uvs[uvIdx2];
+            vec2 uv3 = uvs[uvIdx3];
+
+            vec3 e0 = pos2 - pos1;
+            vec3 e1 = pos3 - pos1;
+            vec2 u0 = uv2 - uv1;
+            vec2 u1 = uv3 - uv1;
+
+            auto eMat = Mat<double, 2, 3>(e0.x, e0.y, e0.z, e1.x, e1.y, e1.z);
+            auto uMat = mat2x2(u0.x, u0.y, u1.x, u1.y);
+            auto tbMat = uMat.invertTranspose().transpose() * eMat;
+            face_tb.push_back(tbMat);
         } // else ignore the line
     }
 
@@ -238,6 +258,14 @@ std::optional<Model> Model::create(std::string const filename)
     std::string nmfile = std::regex_replace(filename, objExt, "") + "_nm.tga";
     TGAImage normalMap;
     auto ok = normalMap.read_tga_file(nmfile);
+    if (!ok)
+    {
+        return std::nullopt;
+    }
+
+    std::string tangentnmfile = std::regex_replace(filename, objExt, "") + "_nm_tangent.tga";
+    TGAImage tangentNormalMap;
+    ok = tangentNormalMap.read_tga_file(tangentnmfile);
     if (!ok)
     {
         return std::nullopt;
@@ -262,12 +290,14 @@ std::optional<Model> Model::create(std::string const filename)
     return Model(
         vertices,
         face_normals,
+        face_tb,
         uvs,
         normals,
         positionIdxs,
         uvIdxs,
         normalIdxs,
         normalMap,
+        tangentNormalMap,
         texDiff,
         texSpec);
 }
@@ -299,6 +329,15 @@ std::optional<vec3> Model::faceNormal(size_t const faceIdx, size_t const idx) co
     return face_normals[faceIdx];
 }
 
+std::optional<Mat<double, 2, 3>> Model::faceTb(size_t const faceIdx, size_t const idx) const
+{
+    if (faceIdx >= nfaces() || idx > 2)
+    {
+        return std::nullopt;
+    }
+    return face_tb[faceIdx];
+}
+
 std::optional<vec2> Model::uv(size_t const faceIdx, size_t const idx) const
 {
     if (faceIdx >= nfaces() || idx > 2)
@@ -322,6 +361,20 @@ vec3 Model::getNm(double const u, double const v) const
     int nearestU = std::round(u * normalMap.width());
     int nearestV = std::round((1 - v) * normalMap.height());
     auto sample = normalMap.get(nearestU, nearestV);
+    vec3 out;
+    for (size_t i : {0, 1, 2})
+    {
+        out.data[2 - i] = sample[i] * (2. / 255) - 1;
+    }
+
+    return norm(out);
+}
+
+vec3 Model::getTangentNm(double const u, double const v) const
+{
+    int nearestU = std::round(u * normalMap.width());
+    int nearestV = std::round((1 - v) * normalMap.height());
+    auto sample = tangentNormalMap.get(nearestU, nearestV);
     vec3 out;
     for (size_t i : {0, 1, 2})
     {

@@ -43,6 +43,7 @@ struct RandomShader : IShader
         vec4 normal(normal3d.x, normal3d.y, normal3d.z, 0.);
         out.normal = norm((uniforms.modelViewMat.invertTranspose() * normal).xyz());
         out.uv = model.uv(face, vert).value();
+        out.tbFrame = model.faceTb(face, vert).value();
         return out;
     }
 
@@ -50,19 +51,26 @@ struct RandomShader : IShader
     {
         double u = fragmentIn.uv.x;
         double v = fragmentIn.uv.y;
-        vec3 normalRaw = model.getNm(u, v);
-        vec3 normal = norm((uniforms.modelViewMat.invertTranspose() * vec4(normalRaw.x, normalRaw.y, normalRaw.z, 0)).xyz());
+        auto tbFrame = fragmentIn.tbFrame;
+        vec3 tangent = norm(tbFrame.row(0));
+        vec4 tangentRot = norm(uniforms.modelViewMat * vec4(tangent, 1.));
+        vec3 bitangent = norm(tbFrame.row(1));
+        vec4 bitangentRot = norm(uniforms.modelViewMat * vec4(bitangent, 1.));
+
+        mat4x4 darbouxFrame(tangentRot, bitangentRot, vec4(fragmentIn.normal, 0), vec4(0, 0, 0, 1));
+        auto normal = norm((darbouxFrame.transpose() * vec4(model.getTangentNm(u, v), 0))).xyz();
+
         vec4 light4d(1., 1., 1., 0);
         vec3 light = norm((uniforms.modelViewMat * light4d).xyz());
-        double ambCoeff = .3;
-        double diffCoeff = .4;
-        double specCoeff = .9;
+        double ambCoeff = .4;
+        double diffCoeff = 1.;
+        double specCoeff = 3.;
 
         double ambient = 1;
         double diffuse = std::max(0., dot(light, normal));
 
         vec3 reflected = norm(2 * normal * dot(light, normal) - light);
-        double specular = std::pow(std::max(0., reflected.z), model.getSpec(u, v)[0]);
+        double specular = (model.getSpec(u, v)[0] / 255.) * std::pow(std::max(0., reflected.z), 35.);
         double rad = std::min(1., ambCoeff * ambient + diffCoeff * diffuse + specCoeff * specular);
 
         auto colorVec = model.getDiff(u, v);
