@@ -10,7 +10,8 @@
 Model::Model(
     std::vector<vec3> const vertices,
     std::vector<vec3> const face_normals,
-    std::vector<Mat<double, 2, 3>> const face_tb,
+    std::vector<vec3> const tangents,
+    std::vector<vec3> const bitangents,
     std::vector<vec2> const uvs,
     std::vector<vec3> const normals,
     std::vector<int> const positionIdxs,
@@ -21,7 +22,8 @@ Model::Model(
     TGAImage const texDiff,
     TGAImage const texSpec) : vertices(vertices),
                               face_normals(face_normals),
-                              face_tb(face_tb),
+                              tangents(tangents),
+                              bitangents(bitangents),
                               uvs(uvs), normals(normals),
                               positionIdxs(positionIdxs),
                               uvIdxs(uvIdxs),
@@ -100,7 +102,8 @@ std::optional<Model> Model::create(std::string const filename)
     }
     std::vector<vec3> vertices;
     std::vector<vec3> face_normals;
-    std::vector<Mat<double, 2, 3>> face_tb;
+    std::vector<vec3> tangents;
+    std::vector<vec3> bitangents;
     std::vector<vec2> uvs;
     std::vector<vec3> normals;
     std::vector<int> positionIdxs;
@@ -249,7 +252,8 @@ std::optional<Model> Model::create(std::string const filename)
             auto eMat = Mat<double, 2, 3>(e0.x, e0.y, e0.z, e1.x, e1.y, e1.z);
             auto uMat = mat2x2(u0.x, u0.y, u1.x, u1.y);
             auto tbMat = uMat.invertTranspose().transpose() * eMat;
-            face_tb.push_back(tbMat);
+            tangents.push_back(tbMat.row(0));
+            bitangents.push_back(tbMat.row(1));
         } // else ignore the line
     }
 
@@ -291,7 +295,8 @@ std::optional<Model> Model::create(std::string const filename)
     return Model(
         vertices,
         face_normals,
-        face_tb,
+        tangents,
+        bitangents,
         uvs,
         normals,
         positionIdxs,
@@ -330,13 +335,22 @@ std::optional<vec3> Model::faceNormal(size_t const faceIdx, size_t const idx) co
     return face_normals[faceIdx];
 }
 
-std::optional<Mat<double, 2, 3>> Model::faceTb(size_t const faceIdx, size_t const idx) const
+std::optional<vec3> Model::faceTangent(size_t const faceIdx, size_t const idx) const
 {
     if (faceIdx >= nfaces() || idx > 2)
     {
         return std::nullopt;
     }
-    return face_tb[faceIdx];
+    return tangents[faceIdx];
+}
+
+std::optional<vec3> Model::faceBitangent(size_t const faceIdx, size_t const idx) const
+{
+    if (faceIdx >= nfaces() || idx > 2)
+    {
+        return std::nullopt;
+    }
+    return bitangents[faceIdx];
 }
 
 std::optional<vec2> Model::uv(size_t const faceIdx, size_t const idx) const

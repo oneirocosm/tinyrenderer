@@ -58,9 +58,10 @@ VertexOut VertexOut::interpolate(std::array<VertexOut, 3> const &vertOut, vec3 c
     out.position = vec4(bc[0] * vertOut[0].position + bc[1] * vertOut[1].position + bc[2] * vertOut[2].position);
     out.fragPos = vec4(bc[0] * vertOut[0].fragPos + bc[1] * vertOut[1].fragPos + bc[2] * vertOut[2].fragPos);
     out.lightPos = vec4(bc[0] * vertOut[0].lightPos + bc[1] * vertOut[1].lightPos + bc[2] * vertOut[2].lightPos);
-    out.normal = norm(vec3(bc[0] * vertOut[0].normal + bc[1] * vertOut[1].normal + bc[2] * vertOut[2].normal));
+    out.normal = vec3(bc[0] * vertOut[0].normal + bc[1] * vertOut[1].normal + bc[2] * vertOut[2].normal);
     out.uv = vec2(bc[0] * vertOut[0].uv + bc[1] * vertOut[1].uv + bc[2] * vertOut[2].uv);
-    out.tbFrame = vertOut[0].tbFrame;
+    out.tangent = vec3(bc[0] * vertOut[0].tangent + bc[1] * vertOut[1].tangent + bc[2] * vertOut[2].tangent);
+    out.bitangent = vec3(bc[0] * vertOut[0].bitangent + bc[1] * vertOut[1].bitangent + bc[2] * vertOut[2].bitangent);
     return out;
 }
 

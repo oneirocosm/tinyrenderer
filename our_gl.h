@@ -16,7 +16,8 @@ struct VertexOut
     vec4 position;
     vec4 fragPos;
     vec4 lightPos;
-    Mat<double, 2, 3> tbFrame;
+    vec3 tangent;
+    vec3 bitangent;
     vec2 uv;
     vec3 normal;
 

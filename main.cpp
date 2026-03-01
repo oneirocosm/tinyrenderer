@@ -73,7 +73,8 @@ struct RandomShader : IShader
         vec4 normal(normal3d.x, normal3d.y, normal3d.z, 0.);
         out.normal = norm((uniforms.modelViewMat.invertTranspose() * normal).xyz());
         out.uv = model.uv(face, vert).value();
-        out.tbFrame = model.faceTb(face, vert).value();
+        out.tangent = model.faceTangent(face, vert).value();
+        out.bitangent = model.faceBitangent(face, vert).value();
         return out;
     }
 
@@ -98,13 +99,12 @@ struct RandomShader : IShader
             closest = uniforms.shadowmap[idx];
         }
 
-        auto tbFrame = fragmentIn.tbFrame;
-        vec3 tangent = norm(tbFrame.row(0));
+        vec3 tangent = norm(fragmentIn.tangent);
         vec4 tangentRot = norm(uniforms.modelViewMat * vec4(tangent, 1.));
-        vec3 bitangent = norm(tbFrame.row(1));
+        vec3 bitangent = norm(fragmentIn.bitangent);
         vec4 bitangentRot = norm(uniforms.modelViewMat * vec4(bitangent, 1.));
 
-        mat4x4 darbouxFrame(tangentRot, bitangentRot, vec4(fragmentIn.normal, 0), vec4(0, 0, 0, 1));
+        mat4x4 darbouxFrame(tangentRot, bitangentRot, vec4(norm(fragmentIn.normal), 0), vec4(0, 0, 0, 1));
         auto normal = norm((darbouxFrame.transpose() * vec4(model.getTangentNm(u, v), 0))).xyz();
 
         vec4 light4d(1., 1., 1., 0);
@@ -117,11 +117,11 @@ struct RandomShader : IShader
         double diffuse = std::max(0., dot(light, normal));
 
         unsigned char shadow = 0;
-        if (closest > ndc.z + 0.05 * std::tan(std::acos(dot(light, normal))))
+        if (closest > ndc.z + 0.03 * std::tan(std::acos(diffuse)))
         {
             shadow = 1;
         }
-        double visibility = (1. - shadow * 0.5);
+        double visibility = (1. - shadow * 0.9);
 
         vec3 reflected = norm(2 * normal * dot(light, normal) - light);
         double specular = (model.getSpec(u, v)[0] / 255.) * std::pow(std::max(0., reflected.z), 35.);

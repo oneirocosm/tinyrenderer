@@ -10,7 +10,8 @@ class Model
 {
     std::vector<vec3> vertices;
     std::vector<vec3> face_normals;
-    std::vector<Mat<double, 2, 3>> face_tb;
+    std::vector<vec3> tangents;
+    std::vector<vec3> bitangents;
     std::vector<vec2> uvs;
     std::vector<vec3> normals;
     std::vector<int> positionIdxs;
@@ -23,7 +24,8 @@ class Model
     Model(
         std::vector<vec3> const vertices,
         std::vector<vec3> const face_normals,
-        std::vector<Mat<double, 2, 3>> const face_tb,
+        std::vector<vec3> const tangents,
+        std::vector<vec3> const bitangents,
         std::vector<vec2> const uvs,
         std::vector<vec3> const normals,
         std::vector<int> const positionIdxs,
@@ -43,7 +45,8 @@ public:
     std::optional<vec3> vert(size_t const idx) const;
     std::optional<vec3> vert(size_t const faceIdx, size_t const idx) const;
     std::optional<vec3> faceNormal(size_t const faceIdx, size_t const idx) const;
-    std::optional<Mat<double, 2, 3>> faceTb(size_t const faceIdx, size_t const idx) const;
+    std::optional<vec3> faceTangent(size_t const faceIdx, size_t const idx) const;
+    std::optional<vec3> faceBitangent(size_t const faceIdx, size_t const idx) const;
     std::optional<vec2> uv(size_t const faceIdx, size_t const idx) const;
     std::optional<vec3> normal(size_t const faceIdx, size_t const idx) const;
     vec3 getNm(double const u, double const v) const;
