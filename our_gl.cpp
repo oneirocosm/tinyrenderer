@@ -29,10 +29,15 @@ mat4x4 createLookAtMat(vec3 const &eye, vec3 const &center, vec3 const &up)
     vec3 l = norm(cross(up, n));
     vec3 m = norm(cross(n, l));
     return mat4x4(
-        l.x, l.y, l.z, -center.x,
-        m.x, m.y, m.z, -center.y,
-        n.x, n.y, n.z, -center.z,
-        0., 0., 0., 1.);
+               l.x, l.y, l.z, 0,
+               m.x, m.y, m.z, 0,
+               n.x, n.y, n.z, 0,
+               0., 0., 0., 1.) *
+           mat4x4(
+               1, 0, 0, -center.x,
+               0, 1, 0, -center.y,
+               0, 0, 1, -center.z,
+               0, 0, 0, 1);
 }
 
 std::vector<double> createZbuffer(int const width, int const height)
@@ -50,6 +55,9 @@ VertexOut VertexOut::interpolate(std::array<VertexOut, 3> const &vertOut, vec3 c
                    { return vec3(in.normal[0], in.normal[1], in.normal[2]); });
     out.normal = norm(interpolateInternal(normals, bc));
     */
+    out.position = vec4(bc[0] * vertOut[0].position + bc[1] * vertOut[1].position + bc[2] * vertOut[2].position);
+    out.fragPos = vec4(bc[0] * vertOut[0].fragPos + bc[1] * vertOut[1].fragPos + bc[2] * vertOut[2].fragPos);
+    out.lightPos = vec4(bc[0] * vertOut[0].lightPos + bc[1] * vertOut[1].lightPos + bc[2] * vertOut[2].lightPos);
     out.normal = norm(vec3(bc[0] * vertOut[0].normal + bc[1] * vertOut[1].normal + bc[2] * vertOut[2].normal));
     out.uv = vec2(bc[0] * vertOut[0].uv + bc[1] * vertOut[1].uv + bc[2] * vertOut[2].uv);
     out.tbFrame = vertOut[0].tbFrame;
@@ -91,19 +99,19 @@ void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImag
     {
         for (int y = std::max(minY, 0); y <= std::min(maxY, framebuffer.height() - 1); ++y)
         {
-            vec3 bc = abc.invertTranspose() * vec3(static_cast<double>(x), static_cast<double>(y), 1.);
-            if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+            vec3 bcScreen = abc.invertTranspose() * vec3(static_cast<double>(x), static_cast<double>(y), 1.);
+            vec3 bcClip(bcScreen.x / clip[0].w, bcScreen.y / clip[1].w, bcScreen.z / clip[2].w);
+            bcClip = bcClip * (1. / (bcClip.x + bcClip.y + bcClip.z));
+            if (bcScreen.x < 0 || bcScreen.y < 0 || bcScreen.z < 0)
             {
                 continue;
             }
-            double z = dot(bc, vec3(ndc[0].z, ndc[1].z, ndc[2].z));
+            double z = dot(bcScreen, vec3(ndc[0].z, ndc[1].z, ndc[2].z));
             if (z <= zbuffer[x + y * framebuffer.width()])
             {
                 continue;
             }
-            vec4 point(x, y, z, 1.);
-            VertexOut fragIn = VertexOut::interpolate(vertOut, bc);
-            fragIn.position = point;
+            VertexOut fragIn = VertexOut::interpolate(vertOut, bcClip);
             auto [discard, color] = shader.fragment(fragIn);
             if (discard)
             {

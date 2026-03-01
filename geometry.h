@@ -340,7 +340,7 @@ struct Mat : MatBase<T, N, M, Mat<T, N, M>>
     Mat<T, M, N> transpose() const
     {
         Mat<T, M, N> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < N; i++)
         {
             for (size_t j = 0; j < M; j++)
@@ -383,7 +383,7 @@ struct Mat<T, 2, 2> : MatBase<T, 2, 2, Mat<T, 2, 2>>
     Mat<T, 2, 2> transpose() const
     {
         Mat<T, 2, 2> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < 2; i++)
         {
             for (size_t j = 0; j < 2; j++)
@@ -415,7 +415,7 @@ struct Mat<T, 2, 2> : MatBase<T, 2, 2, Mat<T, 2, 2>>
     Mat<T, 2, 2> cofactor() const
     {
         Mat<T, 2, 2> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < 2; i++)
         {
             for (size_t j = 0; j < 2; j++)
@@ -477,7 +477,7 @@ struct Mat<T, 3, 3> : MatBase<T, 3, 3, Mat<T, 3, 3>>
     Mat<T, 3, 3> transpose() const
     {
         Mat<T, 3, 3> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < 3; i++)
         {
             for (size_t j = 0; j < 3; j++)
@@ -491,7 +491,7 @@ struct Mat<T, 3, 3> : MatBase<T, 3, 3, Mat<T, 3, 3>>
     Mat<T, 2, 2> minor(size_t const i, size_t const j) const
     {
         Mat<T, 2, 2> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t di = 1; di < 3; di++)
         {
             size_t const xi = (i + di) % 3;
@@ -509,7 +509,7 @@ struct Mat<T, 3, 3> : MatBase<T, 3, 3, Mat<T, 3, 3>>
     Mat<T, 3, 3> cofactor() const
     {
         Mat<T, 3, 3> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < 3; i++)
         {
             for (size_t j = 0; j < 3; j++)
@@ -581,7 +581,7 @@ struct Mat<T, 4, 4> : MatBase<T, 4, 4, Mat<T, 4, 4>>
     Mat<T, 4, 4> transpose() const
     {
         Mat<T, 4, 4> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < 4; i++)
         {
             for (size_t j = 0; j < 4; j++)
@@ -595,7 +595,7 @@ struct Mat<T, 4, 4> : MatBase<T, 4, 4, Mat<T, 4, 4>>
     Mat<T, 3, 3> minor(size_t const i, size_t const j) const
     {
         Mat<T, 3, 3> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t di = 1; di < 4; di++)
         {
             size_t const xi = (i + di) % 4;
@@ -614,7 +614,7 @@ struct Mat<T, 4, 4> : MatBase<T, 4, 4, Mat<T, 4, 4>>
     Mat<T, 4, 4> cofactor() const
     {
         Mat<T, 4, 4> out;
-#pragma omp parallel for
+#pragma omp simd
         for (size_t i = 0; i < 4; i++)
         {
             for (size_t j = 0; j < 4; j++)

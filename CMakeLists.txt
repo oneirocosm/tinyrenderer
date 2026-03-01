@@ -19,6 +19,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU|Intel")
   add_compile_options(-Wall -Wno-maybe-uninitialized)
 endif()
 
+#set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pg -no-pie")
+
 find_package(OpenMP COMPONENTS CXX)
 
 set(SOURCES main.cpp tgaimage.cpp model.cpp our_gl.cpp)

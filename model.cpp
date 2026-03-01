@@ -151,14 +151,13 @@ std::optional<Model> Model::create(std::string const filename)
         }
         else if (words[0] == "vt")
         {
-            if (words.size() != 4)
+            if (words.size() < 3 || words.size() > 4)
             {
                 return std::nullopt;
             }
             std::optional<double> maybe_x = try_stod(words[1]);
             std::optional<double> maybe_y = try_stod(words[2]);
-            std::optional<double> maybe_z = try_stod(words[3]);
-            if (!maybe_x.has_value() || !maybe_y.has_value() || !maybe_z.has_value())
+            if (!maybe_x.has_value() || !maybe_y.has_value())
             {
                 return std::nullopt;
             }
@@ -255,17 +254,19 @@ std::optional<Model> Model::create(std::string const filename)
     }
 
     std::regex objExt("[.]obj");
-    std::string nmfile = std::regex_replace(filename, objExt, "") + "_nm.tga";
     TGAImage normalMap;
+    /*
+    std::string nmfile = std::regex_replace(filename, objExt, "") + "_nm.tga";
     auto ok = normalMap.read_tga_file(nmfile);
     if (!ok)
     {
         return std::nullopt;
     }
+    */
 
     std::string tangentnmfile = std::regex_replace(filename, objExt, "") + "_nm_tangent.tga";
     TGAImage tangentNormalMap;
-    ok = tangentNormalMap.read_tga_file(tangentnmfile);
+    auto ok = tangentNormalMap.read_tga_file(tangentnmfile);
     if (!ok)
     {
         return std::nullopt;
@@ -372,8 +373,8 @@ vec3 Model::getNm(double const u, double const v) const
 
 vec3 Model::getTangentNm(double const u, double const v) const
 {
-    int nearestU = std::round(u * normalMap.width());
-    int nearestV = std::round((1 - v) * normalMap.height());
+    int nearestU = std::round(u * tangentNormalMap.width());
+    int nearestV = std::round((1 - v) * tangentNormalMap.height());
     auto sample = tangentNormalMap.get(nearestU, nearestV);
     vec3 out;
     for (size_t i : {0, 1, 2})
@@ -386,8 +387,8 @@ vec3 Model::getTangentNm(double const u, double const v) const
 
 vec4 Model::getSpec(double const u, double const v) const
 {
-    int nearestU = std::round(u * normalMap.width());
-    int nearestV = std::round((1 - v) * normalMap.height());
+    int nearestU = std::round(u * texSpec.width());
+    int nearestV = std::round((1 - v) * texSpec.height());
     auto sample = texSpec.get(nearestU, nearestV);
     vec4 out;
     for (size_t i : {0, 1, 2, 3})
@@ -400,8 +401,8 @@ vec4 Model::getSpec(double const u, double const v) const
 
 vec4 Model::getDiff(double const u, double const v) const
 {
-    int nearestU = std::round(u * normalMap.width());
-    int nearestV = std::round((1 - v) * normalMap.height());
+    int nearestU = std::round(u * texDiff.width());
+    int nearestV = std::round((1 - v) * texDiff.height());
     auto sample = texDiff.get(nearestU, nearestV);
     vec4 out;
     for (size_t i : {0, 1, 2, 3})
