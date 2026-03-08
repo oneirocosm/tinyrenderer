@@ -73,7 +73,7 @@ void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImag
         clip[i] = vertOut[i].position;
     }
 
-    vec4 ndc[3] = {(1 / clip[0].w) * clip[0], (1 / clip[1].w) * clip[1], (1 / clip[2].w) * clip[2]};
+    vec4 ndc[3] = {clip[0] / clip[0].w, clip[1] / clip[1].w, clip[2] / clip[2].w};
     vec2 screenSpace[3];
     for (size_t i : {0, 1, 2})
     {
@@ -102,7 +102,7 @@ void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImag
         {
             vec3 bcScreen = abc.invertTranspose() * vec3(static_cast<double>(x), static_cast<double>(y), 1.);
             vec3 bcClip(bcScreen.x / clip[0].w, bcScreen.y / clip[1].w, bcScreen.z / clip[2].w);
-            bcClip = bcClip * (1. / (bcClip.x + bcClip.y + bcClip.z));
+            bcClip = bcClip / (bcClip.x + bcClip.y + bcClip.z);
             if (bcScreen.x < 0 || bcScreen.y < 0 || bcScreen.z < 0)
             {
                 continue;

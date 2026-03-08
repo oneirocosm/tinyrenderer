@@ -247,6 +247,19 @@ auto operator*(Vec<T, N> const &v, U const scalar) -> Vec<decltype(v[0] * scalar
     return out;
 }
 
+template <typename T, typename U, size_t N>
+auto operator/(Vec<T, N> const &v, U const scalar) -> Vec<decltype(v[0] / scalar), N>
+{
+    Vec<decltype(v[0] / scalar), N> out;
+    T factor = static_cast<T>(1) / scalar;
+
+    for (size_t i = 0; i < N; i++)
+    {
+        out[i] = v[i] * factor;
+    }
+    return out;
+}
+
 template <typename T, size_t N>
 Vec<T, N> norm(Vec<T, N> const &v)
 {

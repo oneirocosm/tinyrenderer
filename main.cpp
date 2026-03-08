@@ -35,6 +35,33 @@ struct Uniforms
     std::vector<double> shadowmap;
 };
 
+constexpr double PI_HALF = M_PI / 2.;
+
+vec3 randomHemisphere(double maxRadius)
+{
+    double r = (static_cast<double>(rand()) / RAND_MAX) * maxRadius;
+    double theta = (static_cast<double>(rand()) / RAND_MAX) * PI_HALF;
+    double phi = (static_cast<double>(rand()) / RAND_MAX) * M_2_PI;
+
+    double x = r * cos(theta) * cos(phi);
+    double y = r * cos(theta) * sin(phi);
+    double z = r * sin(theta);
+
+    return vec3(x, y, z);
+}
+
+vec3 randomHemisphereSurface(double radius)
+{
+    double theta = (static_cast<double>(rand()) / RAND_MAX) * PI_HALF;
+    double phi = (static_cast<double>(rand()) / RAND_MAX) * M_2_PI;
+
+    double x = radius * cos(theta) * cos(phi);
+    double y = radius * cos(theta) * sin(phi);
+    double z = radius * sin(theta);
+
+    return vec3(x, y, z);
+}
+
 struct ShadowMapShader : IShader
 {
     Model const &model;
@@ -55,11 +82,11 @@ struct ShadowMapShader : IShader
     }
 };
 
-struct RandomShader : IShader
+struct PhongShader : IShader
 {
     Model const &model;
     Uniforms const &uniforms;
-    RandomShader(Model const &model, Uniforms const &uniforms) : model(model), uniforms(uniforms) {};
+    PhongShader(Model const &model, Uniforms const &uniforms) : model(model), uniforms(uniforms) {};
     VertexOut vertex(int const face, int const vert)
     {
         // auto [modelViewMat, perspectiveMat] = uniforms;
@@ -84,7 +111,7 @@ struct RandomShader : IShader
         double v = fragmentIn.uv.y;
 
         vec4 lightPos = fragmentIn.lightPos;
-        vec3 ndc = (1. / lightPos.w) * lightPos.xyz();
+        vec3 ndc = lightPos.xyz() / lightPos.w;
         double x = ndc.x * 0.5 + 0.5;
         double y = ndc.y * 0.5 + 0.5;
 
@@ -136,6 +163,53 @@ struct RandomShader : IShader
         {
             color[i] = static_cast<unsigned char>(rad * colorVec[i]);
         }
+        return std::make_pair(false, color);
+    };
+};
+
+struct BruteForceGlobalAOShader : IShader
+{
+    Model const &model;
+    Uniforms const &uniforms;
+    BruteForceGlobalAOShader(Model const &model, Uniforms const &uniforms) : model(model), uniforms(uniforms) {};
+    VertexOut vertex(int const face, int const vert)
+    {
+        // auto [modelViewMat, perspectiveMat] = uniforms;
+        vec3 v = model.vert(face, vert).value();
+        vec4 position = uniforms.modelViewMat * vec4(v.x, v.y, v.z, 1.);
+        VertexOut out;
+        out.lightPos = uniforms.lightPerspectiveMat * uniforms.lightModelViewMat * vec4(v.x, v.y, v.z, 1.);
+        out.fragPos = position;
+        out.position = uniforms.perspectiveMat * position;
+        vec3 normal3d = model.normal(face, vert).value();
+        vec4 normal(normal3d.x, normal3d.y, normal3d.z, 0.);
+        out.normal = norm((uniforms.modelViewMat.invertTranspose() * normal).xyz());
+        out.uv = model.uv(face, vert).value();
+        out.tangent = model.faceTangent(face, vert).value();
+        out.bitangent = model.faceBitangent(face, vert).value();
+        return out;
+    }
+
+    std::pair<bool, TGAColor> fragment(VertexOut const &fragmentIn) const
+    {
+
+        vec4 normal = vec4(norm(fragmentIn.normal), 0.);
+
+        vec4 position = fragmentIn.position;
+        int x = std::floor(position.x / width);
+        int y = std::floor(position.y / height);
+        int idx = std::floor(y * height) * width + std::floor(x * width);
+        double closest = uniforms.shadowmap[idx];
+
+        float ndotl = dot(normal, fragmentIn.lightPos);
+
+        int shadow = 0;
+        if (closest > position.z + 0.05)
+        {
+            shadow = 1;
+        }
+
+        TGAColor color = {255, 255, 255, 255};
         return std::make_pair(false, color);
     };
 };
@@ -228,7 +302,7 @@ int main(int argc, char **argv)
     for (auto model : models)
     {
         uniforms.shadowmap = shadowMapBuffer;
-        RandomShader phongShader(model, uniforms);
+        PhongShader phongShader(model, uniforms);
 
         for (size_t faceIdx = 0; faceIdx < model.nfaces(); faceIdx++)
         {
