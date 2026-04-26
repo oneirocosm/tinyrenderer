@@ -32,7 +32,7 @@ struct Uniforms
     mat4x4 perspectiveMat;
     mat4x4 lightModelViewMat;
     mat4x4 lightPerspectiveMat;
-    std::vector<double> shadowmap;
+    DepthTexture shadowmap;
 };
 
 constexpr double PI_HALF = M_PI / 2.;
@@ -52,7 +52,7 @@ vec3 randomHemisphere(double maxRadius)
 
 vec3 randomHemisphereSurface(double radius)
 {
-    double theta = (static_cast<double>(rand()) / RAND_MAX) * PI_HALF;
+    double theta = acos(2 * (static_cast<double>(rand()) / RAND_MAX) - 1);
     double phi = (static_cast<double>(rand()) / RAND_MAX) * M_2_PI;
 
     double x = radius * cos(theta) * cos(phi);
@@ -115,15 +115,16 @@ struct PhongShader : IShader
         double x = ndc.x * 0.5 + 0.5;
         double y = ndc.y * 0.5 + 0.5;
 
-        auto idx = static_cast<int>(std::floor(y * shadowHeight) * shadowWidth + std::floor(x * shadowWidth));
+        // auto idx = static_cast<int>(std::floor(y * shadowHeight) * shadowWidth + std::floor(x * shadowWidth));
         double closest;
-        if (idx < 0 || idx > shadowWidth * shadowHeight - 1)
+        if (x < 0 || y < 0 || x > 1 || y > 1)
+        // if (idx < 0 || idx > shadowWidth * shadowHeight - 1)
         {
             closest = -std::numeric_limits<double>::max();
         }
         else
         {
-            closest = uniforms.shadowmap[idx];
+            closest = uniforms.shadowmap.sample2D(x, y);
         }
 
         vec3 tangent = norm(fragmentIn.tangent);
@@ -198,8 +199,8 @@ struct BruteForceGlobalAOShader : IShader
         vec4 position = fragmentIn.position;
         int x = std::floor(position.x / width);
         int y = std::floor(position.y / height);
-        int idx = std::floor(y * height) * width + std::floor(x * width);
-        double closest = uniforms.shadowmap[idx];
+        // int idx = std::floor(y * height) * width + std::floor(x * width);
+        double closest = uniforms.shadowmap.sample2D(x, y);
 
         float ndotl = dot(normal, fragmentIn.lightPos);
 
@@ -216,26 +217,34 @@ struct BruteForceGlobalAOShader : IShader
 
 void saveZbuffer(
     std::string fname,
-    std::vector<double> const &zbuffer,
+    DepthTexture const &zbuffer,
     int const width,
     int const height)
 {
     TGAImage zbufferOut(width, height, TGAImage::RGB);
     auto minVal = std::numeric_limits<double>::max();
     auto maxVal = -std::numeric_limits<double>::max();
-    for (size_t i = 0; i < zbuffer.size(); ++i)
+    // for (size_t i = 0; i < zbuffer.width() * zbuffer.height(); ++i)
+    for (int x = 0; x < zbuffer.width(); ++x)
     {
-        if (zbuffer[i] > -std::numeric_limits<double>::max())
+        for (int y = 0; y < zbuffer.height(); ++y)
         {
-            minVal = std::min(minVal, zbuffer[i]);
+            double value = zbuffer.get(x, y);
+            if (value > -std::numeric_limits<double>::max())
+            {
+                minVal = std::min(minVal, value);
+            }
+            maxVal = std::max(maxVal, value);
         }
-        maxVal = std::max(maxVal, zbuffer[i]);
     }
 
-    for (size_t i = 0; i < zbuffer.size(); ++i)
+    for (int x = 0; x < zbuffer.width(); ++x)
     {
-        auto value = static_cast<unsigned char>((zbuffer[i] - minVal) / (maxVal - minVal) * 255);
-        zbufferOut.set(i % width, i / width, {value, value, value});
+        for (int y = 0; y < zbuffer.height(); ++y)
+        {
+            auto value = static_cast<unsigned char>((zbuffer.get(x, y) - minVal) / (maxVal - minVal) * 255);
+            zbufferOut.set(x, y, {value, value, value});
+        }
     }
     zbufferOut.write_tga_file(fname);
 }
@@ -243,10 +252,10 @@ void saveZbuffer(
 int main(int argc, char **argv)
 {
     TGAImage framebuffer(width, height, TGAImage::RGB, sky);
-    auto zbuffer = createZbuffer(width, height);
+    auto zbuffer = DepthTexture(width, height);
 
     TGAImage dummybuffer(shadowWidth, shadowHeight, TGAImage::RGB);
-    auto shadowMapBuffer = createZbuffer(shadowWidth, shadowHeight);
+    auto shadowMapBuffer = DepthTexture(shadowWidth, shadowHeight);
     std::vector<Model> models;
 
     for (int i = 1; i < argc; ++i)
@@ -268,7 +277,7 @@ int main(int argc, char **argv)
     vec3 eye2Center = eye - center;
     vec3 light2Center = light - center;
 
-    mat4x4 viewportMat = createViewportMat(0, 0, width, height);
+    mat4x4 viewportMat = createViewportMat(width / 16, height / 16, width * 7 / 8, height * 7 / 8);
     mat4x4 perspectiveMat = createPerspectiveMat(std::sqrt(dot(eye2Center, eye2Center)));
     mat4x4 modelViewMat = createLookAtMat(eye, center, up);
 
@@ -280,7 +289,8 @@ int main(int argc, char **argv)
         modelViewMat,
         perspectiveMat,
         lightModelViewMat,
-        lightPerspectiveMat};
+        lightPerspectiveMat,
+        shadowMapBuffer};
 
     for (auto model : models)
     {

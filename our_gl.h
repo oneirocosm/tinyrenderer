@@ -29,7 +29,23 @@ struct IShader
     virtual std::pair<bool, TGAColor> fragment(VertexOut const &fragmentIn) const = 0;
 };
 
-void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImage &framebuffer, std::vector<double> &zbuffer, mat4x4 const &viewportMat);
+class DepthTexture
+{
+    int m_Width;
+    int m_Height;
+    std::vector<double> m_Data;
+
+public:
+    DepthTexture(int width, int height);
+
+    int width() const;
+    int height() const;
+    void set(int x, int y, double depth);
+    double get(int x, int y) const;
+    double sample2D(double x, double y) const;
+};
+
+void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImage &framebuffer, DepthTexture &zbuffer, mat4x4 const &viewportMat);
 
 template <typename T>
 T interpolateInternal(std::array<T, 3> const &surrounding, vec3 const &bc)

@@ -65,7 +65,7 @@ VertexOut VertexOut::interpolate(std::array<VertexOut, 3> const &vertOut, vec3 c
     return out;
 }
 
-void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImage &framebuffer, std::vector<double> &zbuffer, mat4x4 const &viewportMat)
+void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImage &framebuffer, DepthTexture &zbuffer, mat4x4 const &viewportMat)
 {
     vec4 clip[3];
     for (size_t i : {0, 1, 2})
@@ -108,7 +108,7 @@ void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImag
                 continue;
             }
             double z = dot(bcScreen, vec3(ndc[0].z, ndc[1].z, ndc[2].z));
-            if (z <= zbuffer[x + y * framebuffer.width()])
+            if (z <= zbuffer.get(x, y))
             {
                 continue;
             }
@@ -119,7 +119,48 @@ void rasterize(std::array<VertexOut, 3> const &vertOut, IShader &shader, TGAImag
                 continue;
             }
             framebuffer.set(x, y, color);
-            zbuffer[x + y * framebuffer.width()] = z;
+            zbuffer.set(x, y, z);
         }
     }
+}
+
+DepthTexture::DepthTexture(int width, int height) : m_Width(width), m_Height(height), m_Data(std::vector<double>(width * height, -std::numeric_limits<double>::max())) {};
+
+int DepthTexture::width() const
+{
+    return m_Width;
+}
+
+int DepthTexture::height() const
+{
+    return m_Height;
+}
+
+void DepthTexture::set(int x, int y, double depth)
+{
+    // todo: using std::expected would be ideal here
+    assert(x >= 0);
+    assert(x < m_Width);
+    assert(y >= 0);
+    assert(y <= m_Height);
+
+    m_Data[y * m_Width + x] = depth;
+}
+
+double DepthTexture::get(int x, int y) const
+{
+    auto sampleX = std::clamp(x, 0, m_Width - 1);
+    auto sampleY = std::clamp(y, 0, m_Height - 1);
+
+    auto idx = static_cast<int>(sampleY * m_Width + sampleX);
+    return m_Data[idx];
+}
+
+double DepthTexture::sample2D(double x, double y) const
+{
+    auto sampleX = std::clamp(x, 0., 1.);
+    auto sampleY = std::clamp(y, 0., 1.);
+
+    auto idx = static_cast<int>(std::floor(sampleY * m_Height) * m_Width + std::floor(sampleX * m_Width));
+    return m_Data[idx];
 }
